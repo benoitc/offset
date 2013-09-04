@@ -20,7 +20,7 @@ def syscall(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        # enter the functions in syscalls
+        # enter the functions in syscall
         ret = runtime.enter_syscall(func, *args, **kwargs)
         return ret
     return _wrapper

@@ -141,13 +141,15 @@ class Runtime(object):
 
                 gnext = self.runq[0]
 
-            elif self._run_calls:
-                gnext = self._run_calls.pop()
+
             elif len(self.sleeping) > 0:
                 # we dont't have any proc running but a future may come back.
                 # just wait for the first one.
-                futures.wait([fs for fs in self.sleeping], timeout=.1,
+                futures.wait([fs for fs in self.sleeping], timeout=.2,
                         return_when=futures.FIRST_COMPLETED)
+                continue
+            elif self._run_calls:
+                gnext = self._run_calls.pop()
             else:
                 return
 
