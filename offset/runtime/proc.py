@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent import futures
 from collections import deque
 import functools
 import multiprocessing
@@ -94,7 +94,7 @@ class Runtime(object):
 
         # initialize the thread executor pool used for background processing
         # like syscall
-        self.tpool = ThreadPoolExecutor(self._max_threads)
+        self.tpool = futures.ThreadPoolExecutor(self._max_threads)
 
     def newproc(self, func, *args, **kwargs):
         # wrap the function so we know when it ends
@@ -139,14 +139,15 @@ class Runtime(object):
                 if self.runq[0] == gcurrent:
                     self.runq.rotate(-1)
 
-
-
                 gnext = self.runq[0]
 
             elif self._run_calls:
                 gnext = self._run_calls.pop()
-            elif self.sleeping:
-                continue
+            elif len(self.sleeping) > 0:
+                # we dont't have any proc running but a future may come back.
+                # just wait for the first one.
+                futures.wait([fs for fs in self.sleeping], timeout=.1,
+                        return_when=futures.FIRST_COMPLETED)
             else:
                 return
 
@@ -163,14 +164,15 @@ class Runtime(object):
 
     def enter_syscall(self, fn, *args, **kwargs):
         # get current coroutine
-        gcurrent = currproc()
+        gt = currproc()
+        gt.sleeping = True
 
         f = self.tpool.submit(fn, *args, **kwargs)
-        self.sleeping[f] = gcurrent
+        self.sleeping[f] = gt
         f.add_done_callback(self.exit_syscall)
 
         # schedule, switch to another coroutine
-        self.schedule()
+        self.park()
 
         if f.exception() is not None:
             raise f.exception()
@@ -185,7 +187,7 @@ class Runtime(object):
             return
 
         # append to the run queue
-        self.runnable.append(g)
+        self.ready(g)
 
 
 runtime = Runtime()

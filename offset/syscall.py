@@ -5,6 +5,8 @@ from importlib import import_module
 import sys
 import os
 
+from offset.runtime.proc import runtime
+
 _imported = False
 
 _IMPORTED_MODULES = ("os", "os.path", "socket", "select",)
@@ -19,8 +21,7 @@ def syscall(func):
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
         # enter the functions in syscalls
-        #ret = enter_syscall(func, *args, **kwargs)
-        ret = func(*args, **kwargs)
+        ret = runtime.enter_syscall(func, *args, **kwargs)
         return ret
     return _wrapper
 
