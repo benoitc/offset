@@ -8,6 +8,14 @@ py_version = sys.version_info[:2]
 if py_version < (2, 7):
     raise RuntimeError('On Python 2, Flower requires Python 2.7 or better')
 
+requirements = [
+    'fibers',
+    'six',
+]
+
+if py_version == (2, 7):
+    requirements.append('futures')
+
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
@@ -45,5 +53,5 @@ setup(name='offset',
       author = 'Benoit Chesneau',
       author_email = 'benoitc@e-engura.org',
       packages=find_packages(),
-      install_requires = ['fibers', 'six'],
+      install_requires = requirements,
       data_files = DATA_FILES)
