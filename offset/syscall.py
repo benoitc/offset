@@ -34,7 +34,7 @@ def _bootstrap():
         for modname in _IMPORTED_MODULES:
             mod = import_module(modname)
             for (name, obj) in inspect.getmembers(mod):
-                if inspect.isroutine(obj):
+                if inspect.isfunction(obj) and inspect.isbuiltin(obj):
                     f = syscall(obj)
                     setattr(syscall_mod, name, f)
                 else:
