@@ -57,7 +57,7 @@ class Proc(object):
             _tls.current_proc = current
 
     def is_alive(self):
-        return self.started < 0 or self.fiber.is_alive()
+        return self._is_started < 0 or self.fiber.is_alive()
 
 class MainProc(Proc):
 
