@@ -71,6 +71,11 @@ class Kernel(object):
         self.schedule()
 
     def ready(self, g):
+        # special case when we try to make the current goroutine ready
+        if g == proc.current():
+            g.sleeping = False
+            return
+
         if not g.sleeping:
             raise KernelError("bad goroutine status")
 
@@ -94,8 +99,6 @@ class Kernel(object):
                 futures.wait([fs for fs in self.sleeping], timeout=.2,
                         return_when=futures.FIRST_COMPLETED)
                 continue
-            elif self._run_calls:
-                gnext = self._run_calls.pop()
             else:
                 return
 

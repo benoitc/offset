@@ -30,6 +30,7 @@ class Proc(object):
         self.frame = _continuation.continulet(_run)
         self.waiting = False
         self.sleeping = False
+        self.param = None
         self._is_started = 0
 
     def switch(self):
@@ -64,5 +65,6 @@ class MainProc(Proc):
     def __init__(self):
         self._is_started = -1
         self.frame = continulet.__new__(continulet)
+        self.param = None
 
 current = _proc_getcurrent
