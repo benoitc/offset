@@ -1,0 +1,12 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+  - "pypy"
+install:
+  - python setup.py install
+  - pip install pytest
+script: py.test 
+branches:
+  only:
+    - master
