@@ -14,7 +14,7 @@ if py_version < (2, 7):
 REQUIREMENTS = []
 
 if not is_pypy:
-    REQUIREMENTS.append("python-fibers")
+    REQUIREMENTS.append("fibers")
 
 if py_version == (2, 7):
     REQUIREMENTS.append('futures')
@@ -34,6 +34,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 3.0',
     'Programming Language :: Python :: 3.1',
     'Programming Language :: Python :: 3.2',
+    'Programming Language :: Python :: 3.3',
     'Topic :: Software Development :: Libraries']
 
 
