@@ -3,8 +3,8 @@ python:
   - "2.7"
   - "3.3"
 install:
-  - python setup.py install
-  - pip install pytest
+  - "pip install -r requirements_dev.txt --use-mirrors"
+  - "python setup.py install"
 script: py.test 
 branches:
   only:
