@@ -21,4 +21,6 @@ man/
 include/
 html/
 
+
+__pycache__
 .tox
