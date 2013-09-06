@@ -1,6 +1,7 @@
 *.gem
 *.sw*
 *.pyc
+*.egg
 *#*
 build
 dist
