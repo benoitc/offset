@@ -290,3 +290,34 @@ class Test_Channel:
 
 
         run()
+
+    def test_multiple_sender(self):
+        rlist = []
+        sent = []
+
+        def f(c):
+            c.send("ok")
+
+        def f1(c):
+            c.send("eof")
+
+        def f2(c):
+            while True:
+                data = c.recv()
+                sent.append(data)
+                if data == "eof":
+                    return
+                rlist.append(data)
+
+        @maintask
+        def main():
+            c = makechan()
+            go(f, c)
+            go(f1, c)
+            go(f2, c)
+
+        run()
+
+        assert rlist == ['ok']
+        assert len(sent) == 2
+        assert "eof" in sent
