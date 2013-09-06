@@ -61,8 +61,10 @@ class Channel(object):
             except IndexError:
                 return
 
+            gp = sg.g
             sg.elem = elem
-            kernel.ready(sg.g)
+            gp.param = sg
+            kernel.ready(gp)
         else:
             sg = None
             # is the someone receiving?
@@ -96,7 +98,7 @@ class Channel(object):
             if len(self.sendq) <= 0:
                 mysg = _SudoG(g, None)
                 self.recvq.append(mysg)
-                self.park()
+                kernel.park()
 
             try:
                 sg = self.sendq.popleft()
@@ -109,7 +111,7 @@ class Channel(object):
                 kernel.ready(gp)
 
                 if isinstance(sg.elem, bomb):
-                    sg.elem._raise()
+                    sg.elem.raise_()
 
                 return sg.elem
         else:
@@ -127,23 +129,26 @@ class Channel(object):
                 kernel.ready(gp)
 
                 if isinstance(sg.elem, bomb):
-                    sg.elem._raise()
+                    sg.elem.raise_()
 
                 return sg.elem
 
 
             # noone is sending, we have to wait. Append the current process to
             # receiveq, remove us from the run queue and switch
-            g.param = bomb(ChannelError, ChannelError("spurious wakeup"))
+
             mysg = _SudoG(g, None)
             self.recvq.append(mysg)
             kernel.park()
 
             # we are back in the process, return the current value
             if isinstance(g.param.elem, bomb):
-                g.param.elem._raise()
+                g.param.elem.raise_()
 
             return g.param.elem
+
+    def send_exception(self, exp_type, msg):
+        self.send(bomb(exp_type, exp_type(msg)))
 
 def makechan(size=None):
     return Channel(size=size)
