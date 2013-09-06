@@ -43,7 +43,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
 
 DATA_FILES = [
         ('flower', ["LICENSE", "MANIFEST.in", "NOTICE", "README.rst",
-                        "THANKS", "UNLICENSE"])
+                        "THANKS"])
         ]
 
 
