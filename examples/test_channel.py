@@ -16,8 +16,8 @@ def main():
     a = [7, 2, 8, -9, 4, 0]
 
     c = makechan()
-    go(sum, a[:len(a)/2], c)
-    go(sum, a[len(a)/2:], c)
+    go(sum, a[:int(len(a)/2)], c)
+    go(sum, a[int(len(a)/2):], c)
     x, y = c.recv(), c.recv()
 
     print(x, y, x+y)
