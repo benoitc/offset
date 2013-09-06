@@ -2,9 +2,6 @@
 
 from offset import makechan, go, maintask, run
 
-from offset.core.kernel import kernel
-from offset.core import proc
-
 def sum(a, c):
     s = 0
     for v in a:
