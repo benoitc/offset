@@ -35,7 +35,6 @@ if py_version == (2, 7):
 try:
     from offset.core.atomic import ffi
 except ImportError:
-    print("not using cffi")
     EXT_MODULES=[]
 else:
     EXT_MODULES=[ffi.verifier.get_extension()]
