@@ -1,6 +1,6 @@
 
-from .runtime.util import nanotime
-from .runtime.timer import sleep
+from .core.util import nanotime
+from .core.timer import sleep
 
 NANOSECOND = 1
 MICROSECOND = 1000 * NANOSECOND

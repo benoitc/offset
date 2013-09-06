@@ -5,19 +5,20 @@ import time
 
 from . import six
 
-from .proc import runtime, currproc
+from .kernel import kernel
+from . import proc
 from .util import nanotime
 
 
 def _ready(now, t, g):
-    runtime.ready(g)
+    kernel.ready(g)
 
 def sleep(d):
-    curr = currproc()
+    curr = proc.current()
     curr.sleeping = True
     t = Timer(_ready, interval=d, args=(curr,))
     t.start()
-    runtime.park()
+    kernel.park()
 
 class Timer(object):
 
@@ -72,10 +73,10 @@ class Timers(object):
 
             if self.sleeping:
                 self.sleeping = False
-                runtime.ready(self._timerproc)
+                kernel.ready(self._timerproc)
 
             if self._timerproc is None or not self._timerproc.is_alive:
-                self._timerproc = runtime.newproc(self.timerproc)
+                self._timerproc = kernel.newproc(self.timerproc)
 
     def _add_timer(self, t):
         if not t.interval:
@@ -120,10 +121,10 @@ class Timers(object):
             if delta < 0:
                 self.sleeping = True
                 self._lock.release()
-                runtime.park()
+                kernel.park()
             else:
                 self._lock.release()
-                runtime.schedule()
+                kernel.schedule()
 
 timers = Timers()
 add_timer = timers.add

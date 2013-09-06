@@ -5,25 +5,11 @@ from importlib import import_module
 import sys
 import os
 
-from offset.runtime.proc import runtime
+from .core import syscall
 
 _imported = False
 
 _IMPORTED_MODULES = ("os", "os.path", "socket", "select",)
-
-def syscall(func):
-    """ wrap a function to handle its result asynchronously
-
-    This function is useful when you don't want to block the scheduler
-    and execute the other goroutine while the function is processed
-    """
-
-    @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
-        # enter the functions in syscall
-        ret = runtime.enter_syscall(func, *args, **kwargs)
-        return ret
-    return _wrapper
 
 
 def _bootstrap():

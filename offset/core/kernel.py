@@ -5,9 +5,7 @@ import multiprocessing
 import os
 import threading
 
-import fibers
-
-_tls = threading.local()
+from . import proc
 
 try:
     DEFAULT_MAX_THREADS = multiprocessing.cpu_count()
@@ -15,58 +13,6 @@ except NotImplementedError:
     DEFAULT_MAX_THREADS = 2
 
 
-def _proc_getcurrent():
-    try:
-        return _tls.current_proc
-    except AttributeError:
-        return _proc_getmain()
-
-def _proc_getmain():
-    try:
-        return _tls.main_proc
-    except AttributeError:
-        _tls.main_proc = MainProc()
-        return _tls.main_proc
-
-class Proc(object):
-
-    def __init__(self, func, args, kwargs):
-
-        def _run():
-            _tls.current_proc = self
-            self._is_started = 1
-            return func(*args, **kwargs)
-
-        self.fiber = fibers.Fiber(_run)
-        self.waiting = False
-        self.sleeping = False
-        self._is_started = 0
-
-    def switch(self):
-        current = _proc_getcurrent()
-        try:
-            self.fiber.switch()
-        finally:
-            _tls.current_proc = current
-
-    def throw(self, *args):
-        current = _proc_getcurrent()
-        try:
-            self.fiber.throw(*args)
-        finally:
-            _tls.current_proc = current
-
-    def is_alive(self):
-        return self._is_started < 0 or self.fiber.is_alive()
-
-class MainProc(Proc):
-
-    def __init__(self):
-        self._is_started = -1
-        self.fiber = fibers.current()
-
-
-currproc = _proc_getcurrent
 
 def _gwrap(sched, func):
     @functools.wraps(func)
@@ -78,13 +24,13 @@ def _gwrap(sched, func):
     return _wrapper
 
 
-class Runtime(object):
+class Kernel(object):
 
     def __init__(self):
         self.runq = deque()
         self.sleeping = {}
         self._run_calls = []
-        self._last_task = MainProc()
+        self._last_task = proc.MainProc()
 
         # get the default number of threads
         if 'OFFSET_MAX_THREADS' in os.environ:
@@ -100,7 +46,7 @@ class Runtime(object):
         # wrap the function so we know when it ends
         wrapped = _gwrap(self, func)
         # create the coroutine
-        g = Proc(wrapped, args, kwargs)
+        g = proc.Proc(wrapped, args, kwargs)
         # add the coroutine at the end of the runq
         self.runq.append(g)
 
@@ -108,7 +54,7 @@ class Runtime(object):
 
     def removeg(self, g=None):
         # get the current proc
-        g = g or currproc()
+        g = g or proc.current()
         # remove it from the run queue
         try:
             self.runq.remove(g)
@@ -116,7 +62,7 @@ class Runtime(object):
             pass
 
     def park(self, g=None):
-        g = g or currproc()
+        g = g or proc.current()
         g.sleeping = True
         try:
             self.runq.remove(g)
@@ -126,13 +72,13 @@ class Runtime(object):
 
     def ready(self, g):
         if not g.sleeping:
-            raise RuntimeError("bad goroutine status")
+            raise KernelError("bad goroutine status")
 
         g.sleeping = False
         self.runq.append(g)
 
     def schedule(self):
-        gcurrent = currproc()
+        gcurrent = proc.current()
 
         while True:
             if self.runq:
@@ -161,12 +107,12 @@ class Runtime(object):
                 return
 
     def run(self):
-        self._run_calls.append(currproc())
+        self._run_calls.append(proc.current())
         self.schedule()
 
     def enter_syscall(self, fn, *args, **kwargs):
         # get current coroutine
-        gt = currproc()
+        gt = proc.current()
         gt.sleeping = True
 
         f = self.tpool.submit(fn, *args, **kwargs)
@@ -192,15 +138,29 @@ class Runtime(object):
         self.ready(g)
 
 
-runtime = Runtime()
-run = runtime.run
-newproc = runtime.newproc
-gosched = runtime.schedule
+kernel = Kernel()
+run = kernel.run
+newproc = kernel.newproc
+gosched = kernel.schedule
+
+
+def syscall(func):
+    """ wrap a function to handle its result asynchronously
+
+    This function is useful when you don't want to block the scheduler
+    and execute the other goroutine while the function is processed
+    """
+
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        # enter the functions in syscall
+        ret = kernel.enter_syscall(func, *args, **kwargs)
+        return ret
+    return _wrapper
 
 def maintask(func):
-    runtime.newproc(func)
+    kernel.newproc(func)
     return func
-
 
 def go(func, *args, **kwargs):
     """ starts the execution of a function call as an independent goroutine,
@@ -208,4 +168,4 @@ def go(func, *args, **kwargs):
 
     # add the function to scheduler. if the schedule is on anoter process the
     # function will be sent to it using a pipe
-    runtime.newproc(func, *args, **kwargs)
+    kernel.newproc(func, *args, **kwargs)

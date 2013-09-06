@@ -1,2 +1,2 @@
 
-from .runtime.proc import go, run, gosched, maintask
+from .core import go, run, gosched, maintask

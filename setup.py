@@ -3,18 +3,22 @@ from setuptools import setup, find_packages, Extension
 
 import sys
 
+is_pypy = '__pypy__' in sys.builtin_module_names
 py_version = sys.version_info[:2]
 
 if py_version < (2, 7):
-    raise RuntimeError('On Python 2, Flower requires Python 2.7 or better')
+    raise RuntimeError('On Python 2, offset requires Python 2.7 or better')
 
-requirements = [
-    'fibers',
-    'six',
-]
+
+
+REQUIREMENTS = []
+
+if not is_pypy:
+    REQUIREMENTS.append("python-fibers")
 
 if py_version == (2, 7):
-    requirements.append('futures')
+    REQUIREMENTS.append('futures')
+
 
 
 CLASSIFIERS = [
@@ -53,5 +57,5 @@ setup(name='offset',
       author = 'Benoit Chesneau',
       author_email = 'benoitc@e-engura.org',
       packages=find_packages(),
-      install_requires = requirements,
+      install_requires = REQUIREMENTS,
       data_files = DATA_FILES)
