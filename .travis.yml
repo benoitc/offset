@@ -5,6 +5,7 @@ python:
   - "pypy"
 install:
   - python setup.py install
+  - pip install -U cffi
   - pip install pytest
 script: py.test 
 branches:
