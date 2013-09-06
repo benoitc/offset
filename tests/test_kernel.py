@@ -12,9 +12,6 @@ from offset import makechan, go, gosched, run, maintask
 SHOW_STRANGE = False
 
 
-import six
-from six.moves import xrange
-
 def dprint(txt):
     if SHOW_STRANGE:
         print(txt)

@@ -13,9 +13,7 @@ from offset.core.chan import bomb
 
 SHOW_STRANGE = False
 
-
-import six
-from six.moves import xrange
+from offset.core import six
 
 def dprint(txt):
     if SHOW_STRANGE:
