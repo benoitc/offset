@@ -33,8 +33,9 @@ if py_version == (2, 7):
     REQUIREMENTS.append('futures')
 
 try:
-    from flower.core.atomic import ffi
+    from offset.core.atomic import ffi
 except ImportError:
+    print("not using cffi")
     EXT_MODULES=[]
 else:
     EXT_MODULES=[ffi.verifier.get_extension()]
