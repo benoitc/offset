@@ -17,7 +17,6 @@ except NotImplementedError:
     DEFAULT_MAX_THREADS = 2
 
 
-
 def _gwrap(sched, func):
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
@@ -26,6 +25,10 @@ def _gwrap(sched, func):
         finally:
             sched.removeg()
     return _wrapper
+
+
+class KernelError(Exception):
+    """ unexpected error in the kernel """
 
 
 class Kernel(object):
