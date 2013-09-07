@@ -24,7 +24,7 @@ class ChannelError(Exception):
     """ excption raised on channel error """
 
 
-class _SudoG(object):
+class SudoG(object):
 
     def __init__(self, g, elem):
         self.g = g
@@ -55,7 +55,7 @@ class Channel(object):
 
         if self.size > 0:
             if len(self.sendq) < self.size:
-                mysg = _SudoG(g, elem)
+                mysg = SudoG(g, elem)
                 self.sendq.append(mysg)
                 kernel.park()
 
@@ -89,7 +89,7 @@ class Channel(object):
 
             # noone is receiving, add the process to sendq and remove us from
             # the receive q
-            mysg = _SudoG(g, elem)
+            mysg = SudoG(g, elem)
             self.sendq.append(mysg)
             kernel.park()
 
@@ -100,7 +100,7 @@ class Channel(object):
         if self.size > 0:
             # async case
             if len(self.sendq) <= 0:
-                mysg = _SudoG(g, None)
+                mysg = SudoG(g, None)
                 self.recvq.append(mysg)
                 kernel.park()
 
@@ -140,8 +140,7 @@ class Channel(object):
 
             # noone is sending, we have to wait. Append the current process to
             # receiveq, remove us from the run queue and switch
-
-            mysg = _SudoG(g, None)
+            mysg = SudoG(g, None)
             self.recvq.append(mysg)
             kernel.park()
 
