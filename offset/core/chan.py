@@ -207,8 +207,11 @@ class Channel(object):
 
 
 def select(*cases):
-    """ A "select" statement chooses which of a set of possible communications
-    will proceed. """
+    """ A select function lets a goroutine wait on multiple
+    communication operations.
+
+    A select blocks until one of its cases can run, then it
+    executes that case. It chooses one at random if multiple are ready"""
 
     # reorder cases
     c_ordered = [(i, cas) for i, cas in enumerate(cases)]
