@@ -4,11 +4,13 @@
 
 from collections import deque
 import copy
+import random
 import threading
 
 from .kernel import kernel
 from . import six
 from . import proc
+
 
 class bomb(object):
     def __init__(self, exp_type=None, exp_value=None, exp_traceback=None):
@@ -29,6 +31,50 @@ class SudoG(object):
     def __init__(self, g, elem):
         self.g = g
         self.elem = elem
+
+class scase(object):
+    """ select case.
+
+    op = 0 if recv, 1 if send
+    """
+
+    def __init__(self, op, chan, elem=None):
+        self.op = op
+        self.ch = chan
+        self.elem = elem
+        self.sg = None
+        self.ok = True
+
+    @classmethod
+    def recv(cls, chan):
+        """ case recv
+
+        in go: ``val  <- elem``
+        """
+        return cls(0, chan)
+
+    @classmethod
+    def send(cls, chan, elem):
+        """ case send
+
+        in go: ``chan <- elem``
+        """
+        return cls(1, chan, elem=elem)
+
+    def __eq__(self, other):
+        if self.elem is not None:
+            return (self.ch == other.ch and self.op == other.op
+                    and self.elem == other.elem)
+
+        return self.ch == other.ch and self.op == other.op
+
+    def __ne__(self, other):
+        if self.elem is not None:
+            return not (self.ch == other.ch and self.op == other.op
+                    and self.elem == other.elem)
+
+        return not(self.ch == other.ch and self.op == other.op)
+
 
 class Channel(object):
 
@@ -111,7 +157,7 @@ class Channel(object):
 
             if sg is not None:
                 gp = sg.g
-                gp.param = None
+                gp.param = sg
                 kernel.ready(gp)
 
                 if isinstance(sg.elem, bomb):
@@ -129,7 +175,7 @@ class Channel(object):
             if sg is not None:
                 # yes someone is sending, unblock it and return the result
                 gp = sg.g
-                gp.param = None
+                gp.param = sg
                 kernel.ready(gp)
 
                 if isinstance(sg.elem, bomb):
@@ -152,6 +198,84 @@ class Channel(object):
 
     def send_exception(self, exp_type, msg):
         self.send(bomb(exp_type, exp_type(msg)))
+
+    def if_recv(self):
+        return scase.recv(self)
+
+    def if_send(self, elem):
+        return scase.send(self, elem)
+
+
+def select(*cases):
+    """ A "select" statement chooses which of a set of possible communications
+    will proceed. """
+
+    # reorder cases
+    c_ordered = [(i, cas) for i, cas in enumerate(cases)]
+    random.shuffle(c_ordered)
+
+    cases = [cas for _, cas in c_ordered]
+
+    # pass 1 - look for something already waiting
+    for cas in cases:
+        if cas.op == 0:
+            # RECV
+            sg = None
+            try:
+                sg = cas.ch.sendq.popleft()
+            except IndexError:
+                pass
+
+            if sg is not None:
+                gp = sg.g
+                gp.param = None
+                kernel.ready(gp)
+                # append the case to the found results
+                return cas
+
+        else:
+            # SEND
+            sg = None
+            try:
+                sg = cas.ch.recvq.popleft()
+            except IndexError:
+                pass
+
+            if sg is not None:
+                gp = sg.g
+                sg.elem = cas.elem
+                gp.param = sg
+                kernel.ready(gp)
+                return cas
+
+    # pass 2 - enqueue on all channels
+    g = proc.current()
+    g.param = None
+    for cas in cases:
+        sg = SudoG(g, cas.elem)
+        cas.sg = sg
+        if cas.op == 0:
+            cas.ch.recvq.append(sg)
+        else:
+            cas.ch.sendq.append(sg)
+
+    kernel.park()
+
+    sg = g.param
+
+    # pass 3 - dequeue from unsucessful channels
+    # to not iddle in them
+    result = None
+    for cas in cases:
+        if cas.sg != sg:
+            if cas.op == 0:
+                cas.ch.recvq.remove(cas.sg)
+            else:
+                cas.ch.sendq.remove(cas.sg)
+        else:
+            result = cas
+
+    return result
 
 def makechan(size=None):
     return Channel(size=size)
