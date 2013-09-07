@@ -8,7 +8,7 @@ import time
 from py.test import skip
 
 
-from offset import makechan, go, gosched, run, maintask
+from offset import makechan, go, gosched, run, maintask, select
 from offset.core.chan import bomb
 
 SHOW_STRANGE = False
@@ -321,3 +321,88 @@ class Test_Channel:
         assert rlist == ['ok']
         assert len(sent) == 2
         assert "eof" in sent
+
+
+def test_select_simple():
+    rlist = []
+    def fibonacci(c, quit):
+        x, y = 0, 1
+        while True:
+            ret = select(c.if_send(x), quit.if_recv())
+            if ret == c.if_send(x):
+                x, y = y, x+y
+            elif ret == quit.if_recv():
+                return
+
+    @maintask
+    def main():
+        c = makechan()
+        quit = makechan()
+        def f():
+            for i in range(10):
+                rlist.append(c.recv())
+            quit.send(0)
+
+        go(f)
+        fibonacci(c, quit)
+
+    run()
+
+    assert rlist == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+
+def test_select_buffer():
+    rlist = []
+    def test(c, quit):
+        x = 0
+        while True:
+            ret = select(c.if_send(x), quit.if_recv())
+            if ret == c.if_send(x):
+                x = x + 1
+            elif ret == quit.if_recv():
+                return
+
+    @maintask
+    def main():
+        c = makechan(5, label="c")
+        quit = makechan(label="quit")
+        def f():
+            for i in range(5):
+                v = c.recv()
+                rlist.append(v)
+            quit.send(0)
+
+        go(f)
+        test(c, quit)
+
+    run()
+
+    assert rlist == [0, 1, 2, 3, 4]
+
+
+def test_select_buffer2():
+
+
+    def test_(c, quit):
+        r_list = []
+        while True:
+            ret = select(c.if_recv(), quit.if_recv())
+            if ret == c.if_recv():
+                r_list.append(ret.elem)
+            elif ret == quit.if_recv():
+                assert r_list == [0, 1, 2, 3, 4]
+                return
+
+    @maintask
+    def main():
+        r_list = []
+        c = makechan(5, label="c")
+        quit = makechan(label="quit")
+        def f():
+            for i in range(5):
+                c.send(i)
+            quit.send(0)
+
+        go(f)
+        test_(c, quit)
+
+    run()

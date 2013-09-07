@@ -45,6 +45,15 @@ class scase(object):
         self.sg = None
         self.ok = True
 
+    def __str__(self):
+        if self.op == 0:
+            cas_str = "recv"
+        else:
+            cas_str = "send"
+
+        return "scase:%s %s(%s)" % (str(self.ch), cas_str,
+                str(self.elem))
+
     @classmethod
     def recv(cls, chan):
         """ case recv
@@ -75,17 +84,22 @@ class scase(object):
 
         return not(self.ch == other.ch and self.op == other.op)
 
-
 class Channel(object):
 
-    def __init__(self, size=None):
+    def __init__(self, size=None, label=None):
         self.size = size or 0
         self.closed = False
+        self.label = label
 
         self.recvq = deque() # list of receive waiters
         self.sendq = deque() # list of send waiters
 
         self._lock = threading.Lock()
+
+    def __str__(self):
+        if self.label is not None:
+            return "<channel:%s>" % self.label
+        return object.__str__(self)
 
     def close(self):
         self.closed = True
@@ -115,6 +129,7 @@ class Channel(object):
             sg.elem = elem
             gp.param = sg
             kernel.ready(gp)
+            kernel.schedule()
         else:
             sg = None
             # is the someone receiving?
@@ -131,6 +146,7 @@ class Channel(object):
 
                 # activate the receive process
                 kernel.ready(gp)
+                kernel.schedule()
                 return
 
             # noone is receiving, add the process to sendq and remove us from
@@ -150,16 +166,23 @@ class Channel(object):
                 self.recvq.append(mysg)
                 kernel.park()
 
+                if mysg.elem is not None:
+                    if isinstance(mysg.elem, bomb):
+                        mysg.elem.raise_()
+
+                    return mysg.elem
+
             try:
                 sg = self.sendq.popleft()
             except IndexError:
                 pass
 
+
             if sg is not None:
                 gp = sg.g
                 gp.param = sg
                 kernel.ready(gp)
-
+                kernel.schedule()
                 if isinstance(sg.elem, bomb):
                     sg.elem.raise_()
 
@@ -177,6 +200,7 @@ class Channel(object):
                 gp = sg.g
                 gp.param = sg
                 kernel.ready(gp)
+                kernel.schedule()
 
                 if isinstance(sg.elem, bomb):
                     sg.elem.raise_()
@@ -216,7 +240,6 @@ def select(*cases):
     # reorder cases
     c_ordered = [(i, cas) for i, cas in enumerate(cases)]
     random.shuffle(c_ordered)
-
     cases = [cas for _, cas in c_ordered]
 
     # pass 1 - look for something already waiting
@@ -233,6 +256,7 @@ def select(*cases):
                 gp = sg.g
                 gp.param = None
                 kernel.ready(gp)
+                cas.elem = sg.elem
                 # append the case to the found results
                 return cas
 
@@ -255,6 +279,7 @@ def select(*cases):
     g = proc.current()
     g.param = None
     for cas in cases:
+        g.sleeping = True
         sg = SudoG(g, cas.elem)
         cas.sg = sg
         if cas.op == 0:
@@ -271,14 +296,19 @@ def select(*cases):
     result = None
     for cas in cases:
         if cas.sg != sg:
-            if cas.op == 0:
-                cas.ch.recvq.remove(cas.sg)
-            else:
-                cas.ch.sendq.remove(cas.sg)
+            try:
+                if cas.op == 0:
+                    cas.ch.recvq.remove(cas.sg)
+                else:
+                    cas.ch.sendq.remove(cas.sg)
+            except ValueError:
+                pass
         else:
             result = cas
 
+    if result.op == 0:
+        result.elem = sg.elem
     return result
 
-def makechan(size=None):
-    return Channel(size=size)
+def makechan(size=None, label=None):
+    return Channel(size=size, label=label)
