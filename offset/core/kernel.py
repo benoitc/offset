@@ -78,15 +78,15 @@ class Kernel(object):
         self.schedule()
 
     def ready(self, g):
-        # special case when we try to make the current goroutine ready
-        if g == proc.current():
-            g.sleeping = False
-            return
-
         if not g.sleeping:
             raise KernelError("bad goroutine status")
 
         g.sleeping = False
+
+        # prevent a race condition, only 1 G should be in the queue.
+        if self.runq.count(g) > 0:
+            return
+
         self.runq.append(g)
 
     def schedule(self):

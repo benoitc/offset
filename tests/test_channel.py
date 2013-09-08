@@ -227,24 +227,6 @@ class Test_Channel:
         run()
 
 
-
-    def test_nonblocking_channel(self):
-
-        @maintask
-        def main():
-            c = makechan(100)
-            r1 = c.recv()
-            r2 = c.send(True)
-            r3 = c.recv()
-            r4 = c.recv()
-
-            assert r1 is None
-            assert r2 is None
-            assert r3 == True
-            assert r4 is None
-
-        run()
-
     def test_async_channel(self):
 
         @maintask
@@ -268,24 +250,26 @@ class Test_Channel:
 
     def test_async_with_blocking_channel(self):
 
-
-        @maintask
-        def main():
-            c = makechan(10)
-
+        def sender(c):
             unblocked_sent = 0
             for i in range(10):
                 c.send(True)
                 unblocked_sent += 1
 
+            assert unblocked_sent == 10
+
             c.send(True)
 
+        @maintask
+        def main():
+            c = makechan(10)
+
+            go(sender, c)
             unblocked_recv = []
             for i in range(11):
                 unblocked_recv.append(c.recv())
 
 
-            assert unblocked_sent == 10
             assert len(unblocked_recv) == 11
 
 
@@ -341,6 +325,7 @@ def test_select_simple():
         def f():
             for i in range(10):
                 rlist.append(c.recv())
+            print(rlist)
             quit.send(0)
 
         go(f)
@@ -373,36 +358,31 @@ def test_select_buffer():
 
         go(f)
         test(c, quit)
-
     run()
 
     assert rlist == [0, 1, 2, 3, 4]
 
-
 def test_select_buffer2():
+    rlist = []
 
-
-    def test_(c, quit):
-        r_list = []
+    def test(c):
         while True:
-            ret = select(c.if_recv(), quit.if_recv())
+            ret = select(c.if_recv())
             if ret == c.if_recv():
-                r_list.append(ret.elem)
-            elif ret == quit.if_recv():
-                assert r_list == [0, 1, 2, 3, 4]
-                return
+
+                if ret.value == "QUIT":
+                    break
+                rlist.append(ret.value)
 
     @maintask
     def main():
-        r_list = []
         c = makechan(5, label="c")
-        quit = makechan(label="quit")
-        def f():
-            for i in range(5):
-                c.send(i)
-            quit.send(0)
+        go(test, c)
 
-        go(f)
-        test_(c, quit)
+        for i in range(5):
+            c.send(i)
+
+        c.send("QUIT")
 
     run()
+    assert rlist == [0, 1, 2, 3, 4]

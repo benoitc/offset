@@ -44,6 +44,7 @@ class scase(object):
         self.elem = elem
         self.sg = None
         self.ok = True
+        self.value = None
 
     def __str__(self):
         if self.op == 0:
@@ -71,6 +72,9 @@ class scase(object):
         return cls(1, chan, elem=elem)
 
     def __eq__(self, other):
+        if other is None:
+            return
+
         if self.elem is not None:
             return (self.ch == other.ch and self.op == other.op
                     and self.elem == other.elem)
@@ -78,23 +82,32 @@ class scase(object):
         return self.ch == other.ch and self.op == other.op
 
     def __ne__(self, other):
+        if other is None:
+            return
+
         if self.elem is not None:
             return not (self.ch == other.ch and self.op == other.op
                     and self.elem == other.elem)
 
         return not(self.ch == other.ch and self.op == other.op)
 
+
+        return self._len == len(self.buf)
+
 class Channel(object):
 
     def __init__(self, size=None, label=None):
         self.size = size or 0
+
+        self._buf = None
+        if self.size > 0:
+            self._buf = deque()
+
         self.closed = False
         self.label = label
 
         self.recvq = deque() # list of receive waiters
         self.sendq = deque() # list of send waiters
-
-        self._lock = threading.Lock()
 
     def __str__(self):
         if self.label is not None:
@@ -107,29 +120,34 @@ class Channel(object):
     def open(self):
         self.closed = False
 
-    def send(self, elem):
+    def send(self, val):
         g = proc.current()
 
         if self.closed:
             raise ChannelError("send on a closed channel")
 
         if self.size > 0:
-            if len(self.sendq) < self.size:
-                mysg = SudoG(g, elem)
+
+            # the buffer is full, wait until we can fill it
+            while len(self._buf) > self.size:
+                mysg = SudoG(g, None)
                 self.sendq.append(mysg)
                 kernel.park()
 
+            # fill the buffer
+            self._buf.append(val)
+
+            # eventually trigger a receiver
             sg = None
             try:
                 sg = self.recvq.popleft()
             except IndexError:
                 return
 
-            gp = sg.g
-            sg.elem = elem
-            gp.param = sg
-            kernel.ready(gp)
-            kernel.schedule()
+            if sg is not None:
+                gp = sg.g
+                kernel.ready(gp)
+
         else:
             sg = None
             # is the someone receiving?
@@ -141,17 +159,16 @@ class Channel(object):
             if sg is not None:
                 # yes, add the result and activate it
                 gp = sg.g
-                sg.elem = elem
+                sg.elem = val
                 gp.param = sg
 
                 # activate the receive process
                 kernel.ready(gp)
-                kernel.schedule()
                 return
 
             # noone is receiving, add the process to sendq and remove us from
             # the receive q
-            mysg = SudoG(g, elem)
+            mysg = SudoG(g, val)
             self.sendq.append(mysg)
             kernel.park()
 
@@ -160,36 +177,13 @@ class Channel(object):
         g = proc.current()
 
         if self.size > 0:
-            # async case
-            if len(self.sendq) <= 0:
+            while len(self._buf) <= 0:
                 mysg = SudoG(g, None)
                 self.recvq.append(mysg)
                 kernel.park()
 
-                if mysg.elem is not None:
-                    if isinstance(mysg.elem, bomb):
-                        mysg.elem.raise_()
 
-                    return mysg.elem
-
-            try:
-                sg = self.sendq.popleft()
-            except IndexError:
-                pass
-
-
-            if sg is not None:
-                gp = sg.g
-                gp.param = sg
-                kernel.ready(gp)
-                kernel.schedule()
-                if isinstance(sg.elem, bomb):
-                    sg.elem.raise_()
-
-                return sg.elem
-        else:
-            # is there someone sending some data
-
+            # thread safe way to recv on a buffered channel
             try:
                 sg = self.sendq.popleft()
             except IndexError:
@@ -198,27 +192,47 @@ class Channel(object):
             if sg is not None:
                 # yes someone is sending, unblock it and return the result
                 gp = sg.g
-                gp.param = sg
                 kernel.ready(gp)
-                kernel.schedule()
 
-                if isinstance(sg.elem, bomb):
-                    sg.elem.raise_()
+                if sg.elem is not None:
+                    ep = sg.elem
 
-                return sg.elem
+                ep = self._buf.popleft()
+            else:
+                ep = self._buf.popleft()
 
+            if isinstance(ep, bomb):
+                ep.raise_()
 
-            # noone is sending, we have to wait. Append the current process to
-            # receiveq, remove us from the run queue and switch
-            mysg = SudoG(g, None)
-            self.recvq.append(mysg)
-            kernel.park()
+            return ep
 
-            # we are back in the process, return the current value
-            if isinstance(g.param.elem, bomb):
-                g.param.elem.raise_()
+        # sync recv
+        try:
+            sg = self.sendq.popleft()
+        except IndexError:
+            pass
 
-            return g.param.elem
+        if sg is not None:
+            gp = sg.g
+            gp.param = sg
+            kernel.ready(gp)
+
+            if isinstance(sg.elem, bomb):
+                sg.elem.raise_()
+
+            return sg.elem
+
+        # noone is sending, we have to wait. Append the current process to
+        # receiveq, remove us from the run queue and switch
+        mysg = SudoG(g, None)
+        self.recvq.append(mysg)
+        kernel.park()
+
+        # we are back in the process, return the current value
+        if isinstance(g.param.elem, bomb):
+            g.param.elem.raise_()
+
+        return g.param.elem
 
     def send_exception(self, exp_type, msg):
         self.send(bomb(exp_type, exp_type(msg)))
@@ -238,77 +252,119 @@ def select(*cases):
     executes that case. It chooses one at random if multiple are ready"""
 
     # reorder cases
+
+
     c_ordered = [(i, cas) for i, cas in enumerate(cases)]
     random.shuffle(c_ordered)
     cases = [cas for _, cas in c_ordered]
 
-    # pass 1 - look for something already waiting
-    for cas in cases:
-        if cas.op == 0:
-            # RECV
-            sg = None
-            try:
-                sg = cas.ch.sendq.popleft()
-            except IndexError:
-                pass
+    while True:
+        # pass 1 - look for something already waiting
+        for cas in cases:
+            if cas.op == 0:
+                # RECV
+                if cas.ch.size > 0 and len(cas.ch._buf) > 0:
+                    # buffered channel
+                    cas.value = cas.ch._buf.popleft()
 
-            if sg is not None:
-                gp = sg.g
-                gp.param = None
-                kernel.ready(gp)
-                cas.elem = sg.elem
-                # append the case to the found results
-                return cas
+                    # dequeue from the sendq
+                    sg = None
+                    try:
+                        sg = cas.ch.sendq.popleft()
+                    except IndexError:
+                        pass
 
-        else:
-            # SEND
-            sg = None
-            try:
-                sg = cas.ch.recvq.popleft()
-            except IndexError:
-                pass
+                    if sg is not None:
+                        gp = sg.g
+                        kernel.ready(gp)
 
-            if sg is not None:
-                gp = sg.g
-                sg.elem = cas.elem
-                gp.param = sg
-                kernel.ready(gp)
-                return cas
-
-    # pass 2 - enqueue on all channels
-    g = proc.current()
-    g.param = None
-    for cas in cases:
-        g.sleeping = True
-        sg = SudoG(g, cas.elem)
-        cas.sg = sg
-        if cas.op == 0:
-            cas.ch.recvq.append(sg)
-        else:
-            cas.ch.sendq.append(sg)
-
-    kernel.park()
-
-    sg = g.param
-
-    # pass 3 - dequeue from unsucessful channels
-    # to not iddle in them
-    result = None
-    for cas in cases:
-        if cas.sg != sg:
-            try:
-                if cas.op == 0:
-                    cas.ch.recvq.remove(cas.sg)
+                    # return the case
+                    return cas
                 else:
-                    cas.ch.sendq.remove(cas.sg)
-            except ValueError:
-                pass
-        else:
-            result = cas
+                    #
+                    sg = None
+                    try:
+                        sg = cas.ch.sendq.popleft()
+                    except IndexError:
+                        pass
 
-    if result.op == 0:
-        result.elem = sg.elem
-    return result
+                    if sg is not None:
+                        gp = sg.g
+                        gp.param = sg
+                        kernel.ready(gp)
+                        cas.elem = sg.elem
+                        return cas
+
+            else:
+                # SEND
+                if cas.ch.size > 0 and len(cas.ch._buf) <= cas.ch.size:
+                    # buffered channnel, we can fill the buffer
+                    cas.ch._buf.append(cas.elem)
+
+                    # eventually trigger a receiver
+                    sg = None
+                    try:
+                        sg = cas.ch.recvq.popleft()
+                    except IndexError:
+                        pass
+
+                    if sg is not None:
+                        gp = sg.g
+                        gp.param = sg
+                        kernel.ready(gp)
+
+                    # return
+                    return cas
+                else:
+                    sg = None
+                    try:
+                        sg = cas.ch.recvq.popleft()
+                    except IndexError:
+                        pass
+
+                    if sg is not None:
+                        gp = sg.g
+                        sg.elem = cas.elem
+                        gp.param = sg
+                        kernel.ready(gp)
+                        return cas
+
+        # pass 2 - enqueue on all channels
+        g = proc.current()
+        g.param = None
+        g.sleeping = True
+        for cas in cases:
+            sg = SudoG(g, cas.elem)
+            cas.sg = sg
+            if cas.op == 0:
+                cas.ch.recvq.append(sg)
+            else:
+                cas.ch.sendq.append(sg)
+
+        kernel.park()
+
+        sg = g.param
+
+        # pass 3 - dequeue from unsucessful channels
+        # to not iddle in them
+        selected = None
+        for cas in cases:
+            if cas.sg != sg:
+                try:
+                    if cas.op == 0:
+                        cas.ch.recvq.remove(cas.sg)
+                    else:
+                        cas.ch.sendq.remove(cas.sg)
+                except ValueError:
+                    pass
+            else:
+                selected = cas
+
+        if sg is not None:
+            if selected.op == 0:
+                selected.value = sg.elem
+
+            return selected
 
 def makechan(size=None, label=None):
     return Channel(size=size, label=label)

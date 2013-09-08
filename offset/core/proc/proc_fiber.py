@@ -6,6 +6,8 @@ import threading
 
 import fibers
 
+from .. import atomic
+
 _tls = threading.local()
 
 def _proc_getcurrent():
@@ -32,9 +34,16 @@ class Proc(object):
 
         self.fiber = fibers.Fiber(_run)
         self.waiting = False
-        self.sleeping = False
+        self._sleeping = atomic.AtomicLong(0)
         self.param = None
         self._is_started = 0
+
+    def __get_sleeping(self):
+        return bool(self._sleeping)
+
+    def __set_sleeping(self, v):
+        self._sleeping.value = int(v)
+    sleeping = property(__get_sleeping, __set_sleeping)
 
     def switch(self):
         current = _proc_getcurrent()
@@ -52,6 +61,9 @@ class Proc(object):
 
     def is_alive(self):
         return self._is_started < 0 or self.fiber.is_alive()
+
+    def __eq__(self, other):
+        return self.frame == other.frame
 
 class MainProc(Proc):
 
