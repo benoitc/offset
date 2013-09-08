@@ -63,7 +63,7 @@ class Proc(object):
         return self._is_started < 0 or self.fiber.is_alive()
 
     def __eq__(self, other):
-        return self.frame == other.frame
+        return self.fiber == other.fiber
 
 class MainProc(Proc):
 
