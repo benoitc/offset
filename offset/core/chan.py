@@ -127,9 +127,8 @@ class Channel(object):
             raise ChannelError("send on a closed channel")
 
         if self.size > 0:
-
             # the buffer is full, wait until we can fill it
-            while len(self._buf) > self.size:
+            while len(self._buf) >= self.size:
                 mysg = SudoG(g, None)
                 self.sendq.append(mysg)
                 kernel.park()
@@ -169,8 +168,13 @@ class Channel(object):
             # noone is receiving, add the process to sendq and remove us from
             # the receive q
             mysg = SudoG(g, val)
+            g.param = None
             self.sendq.append(mysg)
             kernel.park()
+
+            if g.param is None:
+                if not self.closed:
+                    raise ChannelError("chansend: spurious wakeup")
 
     def recv(self):
         sg = None
@@ -195,16 +199,19 @@ class Channel(object):
                 kernel.ready(gp)
 
                 if sg.elem is not None:
-                    ep = sg.elem
+                    self._buf.append(sg.elem)
 
-                ep = self._buf.popleft()
+                val = self._buf.popleft()
             else:
-                ep = self._buf.popleft()
+                val = self._buf.popleft()
 
-            if isinstance(ep, bomb):
-                ep.raise_()
 
-            return ep
+            kernel.schedule()
+
+            if isinstance(val, bomb):
+                val.raise_()
+
+            return val
 
         # sync recv
         try:
@@ -225,8 +232,14 @@ class Channel(object):
         # noone is sending, we have to wait. Append the current process to
         # receiveq, remove us from the run queue and switch
         mysg = SudoG(g, None)
+        g.param = None
         self.recvq.append(mysg)
         kernel.park()
+
+        if g.param is None:
+            if not self.closed:
+                raise ChannelError("chanrecv: spurious wakeup")
+            return
 
         # we are back in the process, return the current value
         if isinstance(g.param.elem, bomb):
@@ -297,7 +310,7 @@ def select(*cases):
 
             else:
                 # SEND
-                if cas.ch.size > 0 and len(cas.ch._buf) <= cas.ch.size:
+                if cas.ch.size > 0 and len(cas.ch._buf) < cas.ch.size:
                     # buffered channnel, we can fill the buffer
                     cas.ch._buf.append(cas.elem)
 
@@ -310,7 +323,6 @@ def select(*cases):
 
                     if sg is not None:
                         gp = sg.g
-                        gp.param = sg
                         kernel.ready(gp)
 
                     # return
@@ -341,6 +353,7 @@ def select(*cases):
             else:
                 cas.ch.sendq.append(sg)
 
+        # sleep until a communication happen
         kernel.park()
 
         sg = g.param
@@ -360,11 +373,16 @@ def select(*cases):
             else:
                 selected = cas
 
-        if sg is not None:
-            if selected.op == 0:
-                selected.value = sg.elem
+        if sg is None:
+            continue
 
-            return selected
+        if selected.ch.size > 0:
+            raise RuntimeError("select shouldn't happen")
+
+        if selected.op == 0:
+            selected.value = sg.elem
+
+        return selected
 
 def makechan(size=None, label=None):
     return Channel(size=size, label=label)

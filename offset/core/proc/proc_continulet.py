@@ -69,11 +69,8 @@ class Proc(object):
         else:
             return type(self), (), self.__dict__
 
-    def __hash__(self):
-        return hash(self._sleeping)
-
     def __eq__(self, other):
-        return self.frame == other.frame and self._sleeping == other._sleeping
+        return self.frame == other.frame
 
 continulet = _continuation.continulet
 

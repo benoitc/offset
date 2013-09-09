@@ -75,6 +75,7 @@ class Kernel(object):
             self.runq.remove(g)
         except ValueError:
             pass
+
         self.schedule()
 
     def ready(self, g):
@@ -82,10 +83,6 @@ class Kernel(object):
             raise KernelError("bad goroutine status")
 
         g.sleeping = False
-
-        # prevent a race condition, only 1 G should be in the queue.
-        if self.runq.count(g) > 0:
-            return
 
         self.runq.append(g)
 
@@ -99,7 +96,6 @@ class Kernel(object):
 
                 gnext = self.runq[0]
 
-
             elif len(self.sleeping) > 0:
                 # we dont't have any proc running but a future may come back.
                 # just wait for the first one.
@@ -108,6 +104,10 @@ class Kernel(object):
                 continue
             else:
                 return
+
+            if not gnext.is_alive():
+                self.runq.popleft()
+                continue
 
             self._last_task = gnext
             if gnext != gcurrent:
