@@ -33,7 +33,7 @@ if py_version == (2, 7):
     REQUIREMENTS.append('futures')
 
 try:
-    from offset.core.atomic import ffi
+    from offset.sync.atomic import ffi
 except ImportError:
     EXT_MODULES=[]
 else:

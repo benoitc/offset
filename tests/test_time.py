@@ -118,4 +118,3 @@ def test_AfterFunc():
         assert i == 0
 
     run()
-

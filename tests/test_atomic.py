@@ -4,7 +4,7 @@
 # copyright (c) 2013 David Reid under the MIT License.
 
 
-from offset.core.atomic import AtomicLong, ffi, lib
+from offset.sync.atomic import AtomicLong, ffi, lib
 
 def test_long_add_and_fetch():
     l = ffi.new('long *', 0)
