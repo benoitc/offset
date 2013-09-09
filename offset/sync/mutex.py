@@ -18,7 +18,7 @@ class Locker(object):
         raise NotImplementedError
 
 
-class Mutex(Locker):
+class Mutex(object):
     """  A Mutex is a mutual exclusion lock. """
 
     def __init__(self):
@@ -50,6 +50,8 @@ class Mutex(Locker):
                 self.sema.acquire()
                 awoke = True
 
+    __enter__ = lock
+
     def unlock(self):
         new = lib.long_add_and_fetch(self.state, -MUTEX_LOCKED)
         if (new + MUTEX_LOCKED) & MUTEX_LOCKED == 0:
@@ -66,3 +68,6 @@ class Mutex(Locker):
                 self.sema.release()
                 return
             old = self.state[0]
+
+    def __exit__(self, t, v, tb):
+        self.unlock()

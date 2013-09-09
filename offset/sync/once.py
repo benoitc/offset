@@ -37,11 +37,9 @@ class Once(object):
             if self.done == 1:
                 return
 
-            self.m.lock()
-            try:
+            with self.m:
                 if self.done == 0:
                     func(*args, **kwargs)
                     self.done.value = 1
-            finally:
-                self.m.unlock()
+
         return _wrapper
