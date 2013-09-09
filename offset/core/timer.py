@@ -44,7 +44,8 @@ class Timer(object):
     def start(self):
         global timers
         self.active = True
-        self.when = nanotime() + self.interval
+        if not self.when:
+            self.when = nanotime() + self.interval
         add_timer(self)
 
     def stop(self):
