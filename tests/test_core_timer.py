@@ -4,7 +4,6 @@
 
 import time
 
-
 from offset import run, go, maintask
 from offset.core.kernel import kernel
 from offset.core import proc
@@ -14,6 +13,7 @@ from offset.time import SECOND
 
 DELTA0 = 0.06 * SECOND
 DELTA = 0.06 * SECOND
+
 
 def _wait():
     time.sleep(0.01)
@@ -93,6 +93,7 @@ def test_repeat():
         assert r[1] > r[0]
 
     run()
+
 
 def test_sleep():
     @maintask
