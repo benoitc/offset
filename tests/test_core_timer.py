@@ -65,7 +65,6 @@ def test_multiple_timer():
 
         assert r1[0] > r2[0]
 
-        print((r1[0] - (now + T1))/1.0e9)
         assert (now + T1 - DELTA0) <= r1[0] <= (now + T1 + DELTA), r1[0]
         assert (now + T2 - DELTA0) <= r2[0] <= (now + T2 + DELTA), r2[0]
 
@@ -84,7 +83,7 @@ def test_repeat():
 
     @maintask
     def main():
-        t = Timer(f, 0.01, 0.01, args=(proc.current(),))
+        t = Timer(f, 0.01 * SECOND, 0.01 * SECOND, args=(proc.current(),))
         t.start()
         kernel.park()
 

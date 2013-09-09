@@ -22,6 +22,8 @@ def _gwrap(sched, func):
     def _wrapper(*args, **kwargs):
         try:
             func(*args, **kwargs)
+        except proc.ProcExit:
+            pass
         finally:
             sched.removeg()
     return _wrapper
@@ -102,6 +104,8 @@ class Kernel(object):
                 futures.wait([fs for fs in self.sleeping], timeout=.2,
                         return_when=futures.FIRST_COMPLETED)
                 continue
+            elif self._run_calls:
+                gnext = self._run_calls.pop()
             else:
                 return
 
@@ -142,6 +146,9 @@ class Kernel(object):
 
         # we exited
         if f.cancelled():
+            return
+
+        if not g.is_alive():
             return
 
         # append to the run queue

@@ -6,7 +6,9 @@ import threading
 
 import _continuation
 
-from .. import atomic
+
+from .exc import ProcExit
+
 _tls = threading.local()
 
 def _proc_getcurrent():
@@ -33,16 +35,10 @@ class Proc(object):
 
         self.frame = _continuation.continulet(_run)
 
-        self._sleeping = atomic.AtomicLong(0)
+        self.sleeping = False
+        #self._sleeping = atomic.AtomicLong(0)
         self.param = None
         self._is_started = 0
-
-    def __get_sleeping(self):
-        return bool(self._sleeping)
-
-    def __set_sleeping(self, v):
-        self._sleeping.value = int(v)
-    sleeping = property(__get_sleeping, __set_sleeping)
 
     def switch(self):
         current = _proc_getcurrent()
@@ -52,10 +48,9 @@ class Proc(object):
             _tls.current_proc = current
 
     def throw(self, *args):
-        t, v, tb = args
         current = _proc_getcurrent()
         try:
-            current.frame.throw(t, value=v, tb=tb, to=self.frame)
+            current.frame.throw(*args, to=self.frame)
         finally:
             _tls.current_proc = current
 
@@ -80,5 +75,6 @@ class MainProc(Proc):
         self._is_started = -1
         self.frame = continulet.__new__(continulet)
         self.param = None
+        self.sleeping = True
 
 current = _proc_getcurrent

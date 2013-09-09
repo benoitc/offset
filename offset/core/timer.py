@@ -99,6 +99,7 @@ class Timers(object):
     def timerproc(self):
         while True:
             self._lock.acquire()
+            now = nanotime()
 
             while True:
                 if not len(self._heap):
@@ -106,7 +107,6 @@ class Timers(object):
                     break
 
                 t = heapq.heappop(self._heap)
-                now = nanotime()
                 delta = t.when - now
                 if delta > 0:
                     heapq.heappush(self._heap, t)
@@ -114,7 +114,7 @@ class Timers(object):
                 else:
                     # repeat ? reinsert the timer
                     if t.period is not None and t.period > 0:
-                        np = nanotime(t.period)
+                        np = t.period
                         t.when += np * (1 - delta/np)
                         heapq.heappush(self._heap, t)
 

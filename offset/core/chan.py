@@ -117,6 +117,28 @@ class Channel(object):
     def close(self):
         self.closed = True
 
+        # release all receivers
+        while True:
+            try:
+                sg = self.recvq.popleft()
+            except IndexError:
+                break
+
+            gp = sg.g
+            gp.param = None
+            kernel.ready(gp)
+
+        # release all senders
+        while True:
+            try:
+                sg = self.sendq.popleft()
+            except IndexError:
+                break
+
+            gp = sg.g
+            gp.param = None
+            kernel.ready(gp)
+
     def open(self):
         self.closed = False
 
@@ -186,6 +208,7 @@ class Channel(object):
                 self.recvq.append(mysg)
                 kernel.park()
 
+            val = self._buf.popleft()
 
             # thread safe way to recv on a buffered channel
             try:
@@ -200,11 +223,6 @@ class Channel(object):
 
                 if sg.elem is not None:
                     self._buf.append(sg.elem)
-
-                val = self._buf.popleft()
-            else:
-                val = self._buf.popleft()
-
 
             kernel.schedule()
 
@@ -308,7 +326,13 @@ def select(*cases):
                         cas.elem = sg.elem
                         return cas
 
+                    if cas.ch.closed:
+                        return
+
             else:
+                if cas.ch.closed:
+                    return
+
                 # SEND
                 if cas.ch.size > 0 and len(cas.ch._buf) < cas.ch.size:
                     # buffered channnel, we can fill the buffer

@@ -16,3 +16,6 @@ if fibers is not None:
     from .proc_fiber import Proc, MainProc, current
 else:
     from .proc_continulet import Proc, MainProc, current
+
+
+from .exc import ProcExit
