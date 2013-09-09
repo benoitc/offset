@@ -145,7 +145,9 @@ class Kernel(object):
             return
 
         # append to the run queue
-        self.ready(g)
+        # we append to the left so the syscall will be handled in priority
+        g.sleeping = False
+        self.runq.appendleft(g)
 
 
 kernel = Kernel()

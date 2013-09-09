@@ -18,6 +18,9 @@ def from_nanotime(n):
     """ convert from nanotime to seconds """
     return n / 1.0e9
 
+def nanosleep(n):
+    time.sleep(from_nanotime(n))
+
 def close_on_exec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC

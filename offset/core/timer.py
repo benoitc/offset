@@ -11,11 +11,12 @@ from . import six
 
 from .kernel import kernel
 from . import proc
-from .util import nanotime
+from .util import nanotime, nanosleep
 
 
 def _ready(now, t, g):
     kernel.ready(g)
+
 
 def sleep(d):
     curr = proc.current()
@@ -23,6 +24,7 @@ def sleep(d):
     t = Timer(_ready, interval=d, args=(curr,))
     t.start()
     kernel.park()
+
 
 class Timer(object):
 
@@ -54,6 +56,7 @@ class Timer(object):
 
     __cmp__ = __lt__
 
+
 class Timers(object):
 
     __slots__ = ['__dict__', '_lock', 'sleeping']
@@ -70,7 +73,6 @@ class Timers(object):
         self.sleeping = False
         self.rescheduling = False
 
-
     def add(self, t):
         with self._lock:
             self._add_timer(t)
@@ -86,7 +88,6 @@ class Timers(object):
         if not t.interval:
             return
         heapq.heappush(self._heap, t)
-
 
     def remove(self, t):
         with self._lock:
@@ -128,9 +129,10 @@ class Timers(object):
                 kernel.park()
             else:
                 self._lock.release()
-                kernel.schedule()
+                # one time is pending sleep until
+                kernel.enter_syscall(nanosleep, delta)
+
 
 timers = Timers()
 add_timer = timers.add
 remove_timer = timers.remove
-
