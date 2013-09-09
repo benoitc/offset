@@ -52,4 +52,4 @@ def Tick(interval):
     if interval <= 0:
         return
 
-    t = Ticker(interval).chan
+    return Ticker(interval).c
