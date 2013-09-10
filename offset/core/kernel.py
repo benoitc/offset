@@ -10,6 +10,7 @@ import os
 import sys
 import threading
 
+from .exc import KernelError, PanicError
 from . import proc
 
 # increase the recurision limit
@@ -31,10 +32,6 @@ def _gwrap(sched, func):
         finally:
             sched.removeg()
     return _wrapper
-
-
-class KernelError(Exception):
-    """ unexpected error in the kernel """
 
 
 class Kernel(object):

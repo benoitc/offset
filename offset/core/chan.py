@@ -8,6 +8,7 @@ import random
 import threading
 
 from .kernel import kernel
+from .exc import ChannelError
 from . import six
 from . import proc
 
@@ -20,10 +21,6 @@ class bomb(object):
 
     def raise_(self):
         six.reraise(self.type, self.value, self.traceback)
-
-
-class ChannelError(Exception):
-    """ excption raised on channel error """
 
 
 class SudoG(object):
@@ -92,9 +89,6 @@ class scase(object):
                     and self.elem == other.elem)
 
         return not(self.ch == other.ch and self.op == other.op)
-
-
-        return self._len == len(self.buf)
 
 class CaseDefault(scase):
 

@@ -2,6 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+from ..core import PanicError
+
 from .atomic import AtomicLong
 from .mutex import Mutex
 from .sema import Semaphore
@@ -32,7 +34,7 @@ class WaitGroup(object):
         """
         v = self.counter.add(delta)
         if v < 0:
-            raise RuntimeError("sync: negative waitgroup counter")
+            raise PanicError("sync: negative waitgroup counter")
 
         if v > 0 or self.waiters == 0:
             return

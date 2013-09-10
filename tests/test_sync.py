@@ -2,8 +2,9 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-from offset import go, run, maintask, makechan, select, default
+from offset import go, run, maintask, makechan, select, default, PanicError
 
+from pytest import raises
 
 from offset.sync.atomic import AtomicLong
 from offset.sync.cond import Cond
@@ -338,7 +339,7 @@ def test_WaitGroup():
 
         for i in range(n):
             ret = select(exited.if_recv(), default)
-            assert ret != exited.if_recv, "WaitGroup released group too soon"
+            assert ret != exited.if_recv(), "WaitGroup released group too soon"
             wg2.done()
 
             for i in range(16):
@@ -351,3 +352,15 @@ def test_WaitGroup():
         for i in range(8):
             test_waitgroup(wg1, wg2)
 
+    run()
+
+def test_WaitGroup_raises():
+
+    @maintask
+    def main():
+        wg = WaitGroup()
+        with raises(PanicError):
+            wg.add(1)
+            wg.done()
+            wg.done()
+    run()

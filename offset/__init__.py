@@ -2,5 +2,11 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+# scheduler functions
 from .core import go, run, gosched, maintask
-from .core.chan import makechan, Channel, select, scase, CaseDefault, default
+
+# channel functions
+from .core.chan import makechan, select, default
+
+# exceptions
+from .core.exc import PanicError

@@ -52,7 +52,7 @@ class AtomicLong(object):
         if delta >= 0:
             lib.long_add_and_fetch(self._storage, delta)
         else:
-            lib.long_sub_and_fetch(self._storage, delta)
+            lib.long_sub_and_fetch(self._storage, abs(delta))
 
         return self._storage[0]
 
