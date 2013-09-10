@@ -18,16 +18,16 @@ class Cond(object):
 
         # We must be careful to make sure that when ``signal``
         # releases a semaphore, the corresponding acquire is
-	# executed by a coroutine that was already waiting at
-	# the time of the call to ``signal``, not one that arrived later.
-	# To ensure this, we segment waiting coroutines into
-	# generations punctuated by calls to ``signal``.  Each call to
-	# ``signal`` begins another generation if there are no coroutines
-	# left in older generations for it to wake.  Because of this
-	# optimization (only begin another generation if there
-	# are no older coroutines left), we only need to keep track
-	# of the two most recent generations, which we call old
-	# and new.
+        # executed by a coroutine that was already waiting at
+        # the time of the call to ``signal``, not one that arrived later.
+        # To ensure this, we segment waiting coroutines into
+        # generations punctuated by calls to ``signal``.  Each call to
+        # ``signal`` begins another generation if there are no coroutines
+        # left in older generations for it to wake.  Because of this
+        # optimization (only begin another generation if there
+        # are no older coroutines left), we only need to keep track
+        # of the two most recent generations, which we call old
+        # and new.
 
         self.old_waiters = 0 # number of waiters in old generation...
         self.old_sema = Semaphore() # ... waiting on this semaphore
