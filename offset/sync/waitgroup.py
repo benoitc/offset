@@ -50,6 +50,7 @@ class WaitGroup(object):
         self.add(-1)
 
     def wait(self):
+        """ blocks until the WaitGroup counter is zero. """
         if self.counter == 0:
             return
 
