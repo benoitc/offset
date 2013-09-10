@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -
 #
 # This file is part of offset. See the NOTICE for more information.
-# copyright (c) 2013 David Reid under the MIT License.
 
 from .atomic import AtomicLong
 from .mutex import Mutex
