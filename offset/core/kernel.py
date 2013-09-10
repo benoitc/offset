@@ -7,9 +7,13 @@ from collections import deque
 import functools
 import multiprocessing
 import os
+import sys
 import threading
 
 from . import proc
+
+# increase the recurision limit
+sys.setrecursionlimit(1000000)
 
 try:
     DEFAULT_MAX_THREADS = multiprocessing.cpu_count()
