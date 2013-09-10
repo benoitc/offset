@@ -5,11 +5,16 @@
 version_info = (0, 1, 0)
 __version__ = ".".join([str(v) for v in version_info])
 
-# scheduler functions
-from .core import go, run, gosched, maintask
+from .sync.atomic import ffi
 
-# channel functions
-from .core.chan import makechan, select, default
+try:
+    # scheduler functions
+    from .core import go, run, gosched, maintask
 
-# exceptions
-from .core.exc import PanicError
+    # channel functions
+    from .core.chan import makechan, select, default
+
+    # exceptions
+    from .core.exc import PanicError
+except ImportError:
+    pass
