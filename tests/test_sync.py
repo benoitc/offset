@@ -6,6 +6,7 @@ from offset import go, run, maintask, makechan, select, default
 
 
 from offset.sync.atomic import AtomicLong
+from offset.sync.cond import Cond
 from offset.sync.mutex import Mutex
 from offset.sync.once import Once
 from offset.sync.rwmutex import RWMutex
@@ -131,7 +132,6 @@ def test_RWMutex():
         cdone.send(True)
 
     def writer(rwm, num_iterations, activity, cdone):
-        print("writer")
         for i in range(num_iterations):
             rwm.lock()
             n = activity.add(10000)
@@ -200,3 +200,120 @@ def test_RLocker():
             wl.unlock()
 
     run()
+
+def test_Cond_signal():
+
+    def test(m, c, running, awake):
+        with m:
+            running.send(True)
+            c.wait()
+            awake.send(True)
+
+
+    @maintask
+    def main():
+        m = Mutex()
+        c = Cond(m)
+        n = 2
+        running = makechan(n)
+        awake = makechan(n)
+
+        for i in range(n):
+            go(test, m, c, running, awake)
+
+        for i in range(n):
+            running.recv()
+
+        while n > 0:
+            ret = select(awake.if_recv(), default)
+            assert ret != awake.if_recv(), "coroutine not asleep"
+
+            m.lock()
+            c.signal()
+            awake.recv()
+            ret = select(awake.if_recv(), default)
+            assert ret != awake.if_recv(), "too many coroutines awakes"
+            n -= 1
+        c.signal()
+
+    run()
+
+def test_Cond_signal_generation():
+
+    def test(i, m, c, running, awake):
+        m.lock()
+        running.send(True)
+        c.wait()
+        awake.send(i)
+        m.unlock()
+
+    @maintask
+    def main():
+        m = Mutex()
+        c = Cond(m)
+        n = 100
+        running = makechan(n)
+        awake = makechan(n)
+
+        for i in range(n):
+            go(test, i, m, c, running, awake)
+
+            if i > 0:
+                a = awake.recv()
+                assert a == (i - 1), "wrong coroutine woke up: want %d, got %d" % (i-1, a)
+
+            running.recv()
+            with m:
+                c.signal()
+
+    run()
+
+def test_Cond_broadcast():
+    m = Mutex()
+    c = Cond(m)
+    n = 200
+    running = makechan(n)
+    awake = makechan(n)
+    exit = False
+
+    def test(i):
+        m.lock()
+        while not exit:
+            running.send(i)
+            c.wait()
+            awake.send(i)
+        m.unlock()
+
+    @maintask
+    def main():
+        for i in range(n):
+            go(test, i)
+
+        for i in range(n):
+            for i in range(n):
+                running.recv()
+            if i == n -1:
+                m.lock()
+                exit = True
+                m.unlock()
+
+            ret = select(awake.if_recv(), default)
+            assert ret != awake.if_recv(), "coroutine not asleep"
+
+            m.lock()
+            c.broadcast()
+            m.unlock()
+
+            seen = {}
+            for i in range(n):
+                g = awake.recv()
+                assert g not in seen, "coroutine woke up twice"
+                seen[g] = True
+
+        ret = select(running.if_recv(), default)
+        assert ret != running.if_recv(), "coroutine did not exist"
+        c.broadcast()
+
+    run()
+
+

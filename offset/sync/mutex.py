@@ -9,7 +9,6 @@ MUTEX_LOCKED = 1
 MUTEX_WOKEN = 2
 MUTEX_WAITER_SHIFT = 2
 
-
 class Locker(object):
 
     def lock(self):
@@ -43,6 +42,7 @@ class Mutex(Locker):
 
             if awoke:
                 new &= ~(1<<MUTEX_WOKEN)
+
 
             if lib.long_bool_compare_and_swap(self.state, old, new):
                 if old & MUTEX_LOCKED == 0:
