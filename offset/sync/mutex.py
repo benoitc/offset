@@ -9,14 +9,6 @@ MUTEX_LOCKED = 1
 MUTEX_WOKEN = 2
 MUTEX_WAITER_SHIFT = 2
 
-class Locker(object):
-
-    def lock(self):
-        raise NotImplementedError
-
-    def unlock(self):
-        raise NotImplementedError
-
 
 class Mutex(object):
     """  A Mutex is a mutual exclusion lock. """
