@@ -149,7 +149,7 @@ def test_RWMutex():
 
         go(writer, rwm, num_iterations, activity, cdone)
 
-        for i in range(num_readers / 2):
+        for i in range(int(num_readers / 2)):
             go(reader, rwm, num_iterations, activity, cdone)
 
         go(writer, rwm, num_iterations, activity, cdone)
