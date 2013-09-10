@@ -36,6 +36,11 @@ class Timer(object):
         self.t.when = w
         self.t.start()
 
+    def stop(self):
+        self.t.stop()
+        self.c.close()
+
+
 def After(interval):
     """ After waits for the duration to elapse and then sends the current time
     on the returned channel.

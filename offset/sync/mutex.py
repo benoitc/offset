@@ -2,8 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-import threading
 from .atomic import ffi, lib
+from .sema import Semaphore
 
 MUTEX_LOCKED = 1
 MUTEX_WOKEN = 2
@@ -23,7 +23,7 @@ class Mutex(object):
 
     def __init__(self):
         self.state =  ffi.new('long *', 0)
-        self.sema = threading.Semaphore()
+        self.sema = Semaphore(0)
 
 
     def lock(self):
