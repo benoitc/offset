@@ -10,6 +10,8 @@ from offset.sync.cond import Cond
 from offset.sync.mutex import Mutex
 from offset.sync.once import Once
 from offset.sync.rwmutex import RWMutex
+from offset.sync.waitgroup import WaitGroup
+
 
 def test_Mutex():
 
@@ -316,4 +318,36 @@ def test_Cond_broadcast():
 
     run()
 
+def test_WaitGroup():
+
+    def test_waitgroup(wg1, wg2):
+        n = 16
+        wg1.add(n)
+        wg2.add(n)
+        exited = makechan(n)
+
+        def f(i):
+            wg1.done()
+            wg2.wait()
+            exited.send(True)
+
+        for i in range(n):
+            go(f, i)
+
+        wg1.wait()
+
+        for i in range(n):
+            ret = select(exited.if_recv(), default)
+            assert ret != exited.if_recv, "WaitGroup released group too soon"
+            wg2.done()
+
+            for i in range(16):
+                exited.recv()
+
+    @maintask
+    def main():
+        wg1 = WaitGroup()
+        wg2 = WaitGroup()
+        for i in range(8):
+            test_waitgroup(wg1, wg2)
 
