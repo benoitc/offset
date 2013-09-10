@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -
+#
+# This file is part of offset. See the NOTICE for more information.
 
 from collections import deque
-import time
 
 from .atomic import AtomicLong
 from ..core.kernel import kernel
