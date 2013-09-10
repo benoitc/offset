@@ -47,6 +47,16 @@ class AtomicLong(object):
     def value(self, new):
         lib.long_bool_compare_and_swap(self._storage, self.value, new)
 
+    def add(self, delta):
+        """ atomically adds delta and returns the new value """
+        if delta >= 0:
+            lib.long_add_and_fetch(self._storage, delta)
+        else:
+            lib.long_sub_and_fetch(self._storage, delta)
+
+        return self._storage[0]
+
+
     def __iadd__(self, inc):
         lib.long_add_and_fetch(self._storage, inc)
         return self

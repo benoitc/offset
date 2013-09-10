@@ -29,7 +29,7 @@ class Semaphore(object):
     http://golang.org/src/pkg/runtime/sema.goc
     """
 
-    def __init__(self, value):
+    def __init__(self, value=0):
         self.sema = AtomicLong(value)
         self.nwait = AtomicLong(1)
         self.waiters = deque()

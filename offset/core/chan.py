@@ -35,7 +35,7 @@ class SudoG(object):
 class scase(object):
     """ select case.
 
-    op = 0 if recv, 1 if send
+    op = 0 if recv, 1 if send, -1 if default
     """
 
     def __init__(self, op, chan, elem=None):
@@ -49,8 +49,10 @@ class scase(object):
     def __str__(self):
         if self.op == 0:
             cas_str = "recv"
-        else:
+        elif self.op == 1:
             cas_str = "send"
+        else:
+            cas_str = "default"
 
         return "scase:%s %s(%s)" % (str(self.ch), cas_str,
                 str(self.elem))
@@ -93,6 +95,18 @@ class scase(object):
 
 
         return self._len == len(self.buf)
+
+class CaseDefault(scase):
+
+    def __init__(self):
+        self.op = - 1
+        self.chan = None
+        self.elem = None
+        self.ch = None
+        self.value = None
+        self.sg = None
+
+default = CaseDefault()
 
 class Channel(object):
 
@@ -329,7 +343,7 @@ def select(*cases):
                     if cas.ch.closed:
                         return
 
-            else:
+            elif cas.op == 1:
                 if cas.ch.closed:
                     return
 
@@ -364,6 +378,9 @@ def select(*cases):
                         gp.param = sg
                         kernel.ready(gp)
                         return cas
+            else:
+                # default case
+                return cas
 
         # pass 2 - enqueue on all channels
         g = proc.current()
