@@ -109,7 +109,6 @@ class Poller(object):
             self.fds[fd] = mode
 
             mask = 0
-            repeat = False
             for m, r in modes:
                 mask |= m
 
