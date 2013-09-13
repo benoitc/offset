@@ -112,11 +112,7 @@ class Poller(object):
             repeat = False
             for m, r in modes:
                 mask |= m
-                if r:
-                    repeat = True
 
-            if repeat:
-                mask |= select.EPOLLONESHOT
             self.poll.modify(fd, mask)
 
         return (fd_(fd), mode)
