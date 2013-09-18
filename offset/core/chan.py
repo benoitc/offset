@@ -9,7 +9,7 @@ import threading
 
 from .kernel import kernel
 from .exc import ChannelError
-from . import six
+from ..util import six
 from . import proc
 
 

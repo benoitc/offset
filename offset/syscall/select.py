@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -
 #
-# This file is part of offset. See the NOTICE for more information.# -*- coding: utf-8 -
-#
-# This file is part of offset. See the NOTICE for more information.
+# This file is part of offset. See the NOTICE for more information.#
 
-from importlib import import_module
-import inspect
-import sys
+from . import util
+from ..core import kernel
 
-from ..core.kernel import syscall
-from .util import inherit_module
+_select = __import__("select")
 
-select_mod = import_module("select")
-
-__all__ = ['devpoll', 'epoll', 'poll', 'kqueue', 'select']
+__all__ = ["select"]
 
 class _Poll(object):
 
@@ -27,23 +21,25 @@ class _Poll(object):
         return self.poll.unregister(*args)
 
     def poll(self, *args):
-        return syscall(self.poll.poll)(*args)
+        return kernel.syscall(self.poll.poll)(*args)
 
 
-if hasattr(select_mod, "devpoll"):
+if hasattr(_select, "devpoll"):
 
     class devpoll(_Poll):
 
         def __init__(self):
-            self.poll = select_mod.devpoll()
+            self.poll = _select.devpoll()
+
+    __all__.extend(['devpoll'])
 
 
-if hasattr(select_mod, "epoll"):
+if hasattr(_select, "epoll"):
 
     class epoll(_Poll):
 
         def __init__(self):
-            self.poll = select_mod.epoll()
+            self.poll = _select.epoll()
 
         def close(self):
             return self.poll.close()
@@ -54,23 +50,25 @@ if hasattr(select_mod, "epoll"):
         def fromfd(self, fd):
             return self.poll.fromfd(fd)
 
+    __all__.extend(['epoll'])
 
-if hasattr(select_mod, "poll"):
+if hasattr(_select, "poll"):
 
     class poll(_Poll):
 
         def __init__(self):
-            self.poll = select_mod.poll()
+            self.poll = _select.poll()
 
+    __all__.extend(['poll'])
 
-if hasattr(select_mod, "kqueue"):
+if hasattr(_select, "kqueue"):
 
-    kevent = select_mod.kevent
+    kevent = _select.kevent
 
     class kqueue(object):
 
         def init(self):
-            self.kq = select_mod.kqueue()
+            self.kq = _select.kqueue()
 
         def fileno(self):
             return self.kq.fileno()
@@ -82,9 +80,14 @@ if hasattr(select_mod, "kqueue"):
             return self.kq.close()
 
         def control(self, *args, **kwargs):
-            return syscall(self.kq.control)(*args, **kwargs)
+            return kernel.syscall(self.kq.control)(*args, **kwargs)
 
-select = select_mod.select
+    __all__.extend(['kqueue'])
 
-# import select variables
-inherit_module("select", __name__)
+select = kernel.syscall(_select.select)
+
+util.inherit_module('select', __name__)
+
+del util
+del kernel
+

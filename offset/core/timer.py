@@ -7,7 +7,7 @@ import operator
 import threading
 import time
 
-from . import six
+from ..util import six
 
 from .kernel import kernel
 from . import proc

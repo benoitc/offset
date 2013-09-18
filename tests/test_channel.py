@@ -13,7 +13,7 @@ from offset.core.chan import bomb
 
 SHOW_STRANGE = False
 
-from offset.core import six
+from offset.util import six
 
 def dprint(txt):
     if SHOW_STRANGE:
