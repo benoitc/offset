@@ -13,7 +13,7 @@ import threading
 from .exc import KernelError, PanicError
 from . import proc
 
-# increase the recurision limit
+# increase the recursion limit
 sys.setrecursionlimit(1000000)
 
 try:
