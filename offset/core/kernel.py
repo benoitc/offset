@@ -173,7 +173,6 @@ def syscall(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        print("ici")
         # enter the functions in syscall
         ret = kernel.enter_syscall(func, *args, **kwargs)
         return ret
