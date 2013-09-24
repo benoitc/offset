@@ -71,7 +71,7 @@ if hasattr(__select_mod__, "epoll"):
             return self.poll.close()
 
         def fileno(self):
-            return self.poll.close()
+            return self.poll.fileno()
 
         def fromfd(self, fd):
             return self.poll.fromfd(fd)
