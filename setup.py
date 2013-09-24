@@ -24,7 +24,7 @@ if py_version < (2, 7):
 
 
 
-REQUIREMENTS = ["cffi"]
+REQUIREMENTS = ["cffi", "wrapt"]
 
 if not is_pypy:
     REQUIREMENTS.append("fibers")

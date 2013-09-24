@@ -162,7 +162,7 @@ kernel = Kernel()
 run = kernel.run
 newproc = kernel.newproc
 gosched = kernel.schedule
-
+enter_syscall = kernel.enter_syscall
 
 def syscall(func):
     """ wrap a function to handle its result asynchronously
@@ -173,6 +173,7 @@ def syscall(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
+        print("ici")
         # enter the functions in syscall
         ret = kernel.enter_syscall(func, *args, **kwargs)
         return ret
