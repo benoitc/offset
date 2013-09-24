@@ -4,12 +4,19 @@
 
 import threading
 
-import fibers
-
-from .. import atomic
+try:
+    from . import _fibers as fibers
+except ImportError:
+    try:
+        import fibers
+    except ImportError:
+        raise RuntimeError("Platform not supported")
 
 _tls = threading.local()
 
+
+class ProcExit(Exception):
+    """ exception raised when the proc is asked to exit """
 
 def _proc_getcurrent():
     try:
