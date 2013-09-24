@@ -22,7 +22,7 @@ class OsProxy(wrapt.ObjectProxy):
     _OS_SYSCALLS =  ("chown", "fchown", "close", "dup", "dup2", "read",
             "pread","write", "pwrite", "sendfile", "readv", "writev", "stat",
             "lstat", "truncate", "sync", "lseek", "open", "posix_fallocate",
-            "posix_fadvise", "chmod", "chflags", "getcwd", )
+            "posix_fadvise", "chmod", "chflags", )
 
     def __init__(self):
         super(OsProxy, self).__init__(__os_mod__)
