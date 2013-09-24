@@ -50,7 +50,7 @@ class _Poll(object):
         return self.poll.unregister(*args)
 
     def poll(self, *args):
-        return kernel.syscall(self.poll.poll)(*args)
+        return kernel.enter_syscall(self.poll.poll, *args)
 
 
 if hasattr(__select_mod__, "devpoll"):
