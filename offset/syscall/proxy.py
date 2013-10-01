@@ -6,8 +6,10 @@
 __os_mod__ = __import__("os")
 __select_mod__ = __import__("select")
 __socket_mod__ = __import__("socket")
+_socket = __import__("socket")
 
 import inspect
+import io
 import wrapt
 from ..core import kernel
 
@@ -35,23 +37,108 @@ class OsProxy(wrapt.ObjectProxy):
         return getattr(self.__wrapped__, name)
 
 
-class SocketObjProxy(wrapt.ObjectProxy):
+if hasattr(_socket, "SocketIO"):
+    SocketIO = _socket.SocketIO
+else:
+    from _socketio import SocketIO
+
+class socket(_socket.socket):
+    """A subclass of _socket.socket wrapping the makefile() method and
+    patching blocking calls. """
+
+    __slots__ = ["_io_refs", "_closed"]
 
     _BL_SYSCALLS = ('accept', 'getpeername', 'getsockname',
             'getsockopt', 'ioctl', 'recv', 'recvfrom', 'recvmsg',
             'recvmsg_into', 'recvfrom_into', 'recv_into', 'send',
-            'sendall', 'sendto', 'sendmsg',)
+            'sendall', 'sendto', 'sendmsg', )
 
-    def __init__(self):
-        super(SocketObjProxy, self).__init__(__socket_mod__.socket)
+    def __init__(self, family=_socket.AF_INET, type=_socket.SOCK_STREAM,
+            proto=0, fileno=None):
+        _socket.socket.__init__(self, family, type, proto, fileno)
+        self._io_refs = 0
+        self._closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        if not self._closed:
+            self.close()
 
     def __getattr__(self, name):
         # wrap syscalls
         if name in self._BL_SYSCALLS:
-            return kernel.syscall(getattr(self.__wrapped__, name))
-        return getattr(self.__wrapped__, name)
+            return kernel.syscall(getattr(_socket.socket, name))
+        return getattr(_socket.socket, name)
 
-_socketobj = SocketObjProxy()
+
+    def makefile(self, mode="r", buffering=None, encoding=None,
+            errors=None, newline=None):
+        """makefile(...) -> an I/O stream connected to the socket
+
+        The arguments are as for io.open() after the filename,
+        except the only mode characters supported are 'r', 'w' and 'b'.
+        The semantics are similar too.  (XXX refactor to share code?)
+        """
+        for c in mode:
+            if c not in {"r", "w", "b"}:
+                raise ValueError("invalid mode %r (only r, w, b allowed)")
+        writing = "w" in mode
+        reading = "r" in mode or not writing
+        assert reading or writing
+        binary = "b" in mode
+        rawmode = ""
+        if reading:
+            rawmode += "r"
+        if writing:
+            rawmode += "w"
+        raw = SocketIO(self, rawmode)
+        self._io_refs += 1
+        if buffering is None:
+            buffering = -1
+        if buffering < 0:
+            buffering = io.DEFAULT_BUFFER_SIZE
+        if buffering == 0:
+            if not binary:
+                raise ValueError("unbuffered streams must be binary")
+            return raw
+        if reading and writing:
+            buffer = io.BufferedRWPair(raw, raw, buffering)
+        elif reading:
+            buffer = io.BufferedReader(raw, buffering)
+        else:
+            assert writing
+            buffer = io.BufferedWriter(raw, buffering)
+        if binary:
+            return buffer
+        text = io.TextIOWrapper(buffer, encoding, errors, newline)
+        text.mode = mode
+        return text
+
+    def _decref_socketios(self):
+        if self._io_refs > 0:
+            self._io_refs -= 1
+        if self._closed:
+            self.close()
+
+    def _real_close(self, _ss=_socket.socket):
+        # This function should not reference any globals. See issue #808164.
+        _ss.close(self)
+
+    def close(self):
+        # This function should not reference any globals. See issue #808164.
+        self._closed = True
+        if self._io_refs <= 0:
+            self._real_close()
+
+    def detach(self):
+        self._closed = True
+        if hasattr(_socket.socket, 'detach'):
+            return super().detach()
+
+        # python 2.7 has no detach method, fake it
+        return self.fileno()
 
 
 class SocketProxy(wrapt.ObjectProxy):
@@ -60,7 +147,40 @@ class SocketProxy(wrapt.ObjectProxy):
         super(SocketProxy, self).__init__(__socket_mod__)
 
     def socket(self, *args, **kwargs):
-        return _socketobj(*args, **kwargs)
+        return socket(*args, **kwargs)
+
+    def fromfd(self, fd, family, type, proto=0):
+        if hasattr(self.__wrapped__, 'dup'):
+            nfd = self.__wrapped__.dup(fd)
+        else:
+            nfd = __os_mod__.dup(fd)
+
+        return socket(family, type, proto, nfd)
+
+    if hasattr(socket, "share"):
+        def fromshare(self, info):
+            return socket(0, 0, 0, info)
+
+    if hasattr(_socket, "socketpair"):
+        def socketpair(self, family=None, type=__socket_mod__.SOCK_STREAM,
+                proto=0):
+
+            if family is None:
+                try:
+                    family = self.__wrapped__.AF_UNIX
+                except NameError:
+                    family = self.__wrapped__.AF_INET
+            a, b = self.__wrapped__.socketpair(family, type, proto)
+
+            if hasattr(a, 'detach'):
+                a = socket(family, type, proto, a.detach())
+                b = socket(family, type, proto, b.detach())
+            else:
+                a = socket(family, type, proto, a.fileno())
+                b = socket(family, type, proto, b.fileno())
+
+            return a, b
+
 
 # proxy the socket proxy
 
