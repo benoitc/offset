@@ -5,6 +5,7 @@
 
 __os_mod__ = __import__("os")
 __select_mod__ = __import__("select")
+__socket_mod__ = __import__("socket")
 
 import inspect
 import wrapt
@@ -31,9 +32,35 @@ class OsProxy(wrapt.ObjectProxy):
         # wrap syscalls
         if name in self._OS_SYSCALLS:
             return kernel.syscall(getattr(self.__wrapped__, name))
-
         return getattr(self.__wrapped__, name)
 
+
+class SocketObjProxy(wrapt.ObjectProxy):
+
+    _BL_SYSCALLS = ('accept', 'getpeername', 'getsockname',
+            'getsockopt', 'ioctl', 'recv', 'recvfrom', 'recvmsg',
+            'recvmsg_into', 'recvfrom_into', 'recv_into', 'send',
+            'sendall', 'sendto', 'sendmsg',)
+
+    def __init__(self):
+        super(SocketObjProxy, self).__init__(__socket_mod__.socket)
+
+    def __getattr__(self, name):
+        # wrap syscalls
+        if name in self._BL_SYSCALLS:
+            return kernel.syscall(getattr(self.__wrapped__, name))
+        return getattr(self.__wrapped__, name)
+
+_socketobj = SocketObjProxy()
+
+
+class SocketProxy(wrapt.ObjectProxy):
+
+    def __init__(self):
+        super(SocketProxy, self).__init__(__socket_mod__)
+
+    def socket(self, *args, **kwargs):
+        return _socketobj(*args, **kwargs)
 
 # proxy the socket proxy
 

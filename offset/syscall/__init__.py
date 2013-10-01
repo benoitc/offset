@@ -14,4 +14,9 @@ sys.modules['offset.syscall.os'] = os
 
 # patch the select module
 select = proxy.SelectProxy()
-sys.modules['select.syscall.select'] = select
+sys.modules['offset.syscall.select'] = select
+
+# patch the socket module
+socket = proxy.SocketProxy()
+socketobj = proxy.SocketObjProxy()
+sys.modules['offset.syscall.socket'] = socket
