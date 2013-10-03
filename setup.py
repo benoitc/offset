@@ -29,12 +29,19 @@ REQUIREMENTS = ["cffi", "wrapt", "fibers"]
 if py_version == (2, 7):
     REQUIREMENTS.append('futures')
 
+import imp
+
+def load_module(name, path):
+    f, pathname, description = imp.find_module(name, [path])
+    return imp.load_module(name, f, pathname, description)
+
+
 try:
-    from offset.sync.atomic import ffi
+    atomic = load_module('atomic', './offset/sync')
 except ImportError:
     EXT_MODULES=[]
 else:
-    EXT_MODULES=[ffi.verifier.get_extension()]
+    EXT_MODULES=[atomic.ffi.verifier.get_extension()]
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
