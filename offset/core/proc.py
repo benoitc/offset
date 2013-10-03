@@ -5,12 +5,9 @@
 import threading
 
 try:
-    from . import _fibers as fibers
+    import fibers
 except ImportError:
-    try:
-        import fibers
-    except ImportError:
-        raise RuntimeError("Platform not supported")
+    raise RuntimeError("Platform not supported")
 
 _tls = threading.local()
 

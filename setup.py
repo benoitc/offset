@@ -24,10 +24,7 @@ if py_version < (2, 7):
 
 
 
-REQUIREMENTS = ["cffi", "wrapt"]
-
-if not is_pypy:
-    REQUIREMENTS.append("fibers")
+REQUIREMENTS = ["cffi", "wrapt", "fibers"]
 
 if py_version == (2, 7):
     REQUIREMENTS.append('futures')
