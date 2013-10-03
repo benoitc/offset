@@ -29,7 +29,6 @@ long long_bool_compare_and_swap(long *v, long o, long n) {
 };
 """)
 
-
 @total_ordering
 class AtomicLong(object):
     def __init__(self, initial_value):

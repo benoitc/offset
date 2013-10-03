@@ -69,9 +69,10 @@ DATA_FILES = [
                         "THANKS"])
         ]
 
+VERSION = load_module('version', './offset').__version__
 
 setup(name='offset',
-        version='0.1.0',
+        version=VERSION,
         description = 'collection of modules to build distributed and reliable concurrent systems',
         long_description = long_description,
         classifiers = CLASSIFIERS,

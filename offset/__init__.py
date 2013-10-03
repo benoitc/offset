@@ -2,8 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-version_info = (0, 1, 0)
-__version__ = ".".join([str(v) for v in version_info])
+# version info
+from .version import version_info, __version__
 
 # scheduler functions
 from .core import go, run, gosched, maintask
