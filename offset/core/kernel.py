@@ -5,13 +5,11 @@
 from concurrent import futures
 from collections import deque
 import functools
-import inspect
 import multiprocessing
 import os
 import sys
-import threading
 
-from .exc import KernelError, PanicError
+from .exc import KernelError
 from . import proc
 
 # increase the recursion limit

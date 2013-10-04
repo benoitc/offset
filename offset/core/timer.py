@@ -5,7 +5,6 @@
 import heapq
 import operator
 import threading
-import time
 
 from ..util import six
 

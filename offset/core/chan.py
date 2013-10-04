@@ -3,9 +3,7 @@
 # This file is part of offset. See the NOTICE for more information.
 
 from collections import deque
-import copy
 import random
-import threading
 
 from .kernel import kernel
 from .exc import ChannelError

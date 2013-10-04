@@ -8,7 +8,6 @@ __select_mod__ = __import__("select")
 __socket_mod__ = __import__("socket")
 _socket = __import__("socket")
 
-import inspect
 import io
 import wrapt
 from ..core import kernel

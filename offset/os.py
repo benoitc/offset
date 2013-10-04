@@ -2,12 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.#
 
-import errno
-import os
+from . import syscall
 
-import syscall
-
-import atexit
 
 class File(object):
 
