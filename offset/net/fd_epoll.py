@@ -80,7 +80,7 @@ class Poller(object):
             pollserver.lock()
             try:
                 events = self.poll.poll(nsec)
-            except select.error as:
+            except select.error as e:
                 if e.args[0] == errno.EINTR:
                     continue
                 raise

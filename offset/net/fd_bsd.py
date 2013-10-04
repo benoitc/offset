@@ -17,7 +17,7 @@ class Pollster(object):
         self.events = []
 
     def addfd(self, fd, mode, repeat=True):
-        if mode = 'r':
+        if mode == 'r':
             kmode = select.KQ_FILTER_READ
         else:
             kmode = selecy.KQ_FILTER_WRITE
@@ -34,7 +34,7 @@ class Pollster(object):
         select.control([ev], 0)
 
     def delfd(self, fd, mode):
-        if mode = 'r':
+        if mode == 'r':
             kmode = syscall.KQ_FILTER_READ
         else:
             kmode = syscall.KQ_FILTER_WRITE
@@ -48,7 +48,7 @@ class Pollster(object):
             pollserver.lock()
             try:
                 events = self.kq.control(None, 0, nsec)
-            except select.error as:
+            except select.error as e:
                 if e.args[0] == errno.EINTR:
                     continue
                 raise
@@ -58,7 +58,7 @@ class Pollster(object):
             self.events.extend(events)
 
         ev = self.events.pop(0)
-        if ev.filter = select.KQ_FILTER_READ:
+        if ev.filter == select.KQ_FILTER_READ:
             mode = 'r'
         else:
             mode = 'w'

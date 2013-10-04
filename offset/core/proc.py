@@ -34,7 +34,6 @@ class Proc(object):
 
     def __init__(self, m, func, args, kwargs):
 
-
         def _run():
             _tls.current_proc = self
             self._is_started = 1

@@ -22,7 +22,7 @@ class Poller(object):
         else:
             self.write_fds[fd] = repeat
 
-    def delfd(self. fd, mode):
+    def delfd(self, fd, mode):
         if mode == 'r' and fd in self.read_fds:
             del self.read_fds[fd]
         elif fd in self.write_fds:
@@ -36,7 +36,7 @@ class Poller(object):
             pollserver.lock()
             try:
                 r, w, e = select.select(read_fds, write_fds, [], nsec)
-            except select.error as:
+            except select.error as e:
                 if e.args[0] == errno.EINTR:
                     continue
                 raise
