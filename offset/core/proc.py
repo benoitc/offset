@@ -32,13 +32,20 @@ def _proc_getmain():
 
 class Proc(object):
 
-    def __init__(self, func, args, kwargs):
+    def __init__(self, m, func, args, kwargs):
+
 
         def _run():
             _tls.current_proc = self
             self._is_started = 1
-            return func(*args, **kwargs)
+            try:
+                return func(*args, **kwargs)
+            except ProcExit:
+                pass
+            finally:
+                m.removeg()
 
+        self.m = m
         self.fiber = fibers.Fiber(_run)
         self.waiting = False
         self.sleeping = False

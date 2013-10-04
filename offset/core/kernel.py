@@ -5,6 +5,7 @@
 from concurrent import futures
 from collections import deque
 import functools
+import inspect
 import multiprocessing
 import os
 import sys
@@ -20,18 +21,6 @@ try:
     DEFAULT_MAX_THREADS = multiprocessing.cpu_count()
 except NotImplementedError:
     DEFAULT_MAX_THREADS = 2
-
-
-def _gwrap(sched, func):
-    @functools.wraps(func)
-    def _wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except proc.ProcExit:
-            pass
-        finally:
-            sched.removeg()
-    return _wrapper
 
 
 class Kernel(object):
@@ -54,9 +43,8 @@ class Kernel(object):
 
     def newproc(self, func, *args, **kwargs):
         # wrap the function so we know when it ends
-        wrapped = _gwrap(self, func)
         # create the coroutine
-        g = proc.Proc(wrapped, args, kwargs)
+        g = proc.Proc(self, func, args, kwargs)
         # add the coroutine at the end of the runq
         self.runq.append(g)
 
