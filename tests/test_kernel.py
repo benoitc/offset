@@ -53,6 +53,25 @@ def test_run():
     assert output == [(1,), (2,)]
 
 
+def test_run_class():
+    output = []
+    def print_(*args):
+        output.append(args)
+
+    class Test(object):
+
+        def __call__(self, i):
+            print_(i)
+
+    t = Test()
+
+    go(t, 1)
+    go(t, 2)
+    run()
+
+    assert output == [(1,), (2,)]
+
+
 # tests inspired from simple core.com examples
 
 def test_construction():
