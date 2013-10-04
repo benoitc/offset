@@ -27,6 +27,7 @@ class SudoG(object):
         self.g = g
         self.elem = elem
 
+
 class scase(object):
     """ select case.
 
@@ -63,7 +64,7 @@ class scase(object):
     @classmethod
     def send(cls, chan, elem):
         """ case send
-
+-
         in go: ``chan <- elem``
         """
         return cls(1, chan, elem=elem)
@@ -88,6 +89,7 @@ class scase(object):
 
         return not(self.ch == other.ch and self.op == other.op)
 
+
 class CaseDefault(scase):
 
     def __init__(self):
@@ -98,7 +100,9 @@ class CaseDefault(scase):
         self.value = None
         self.sg = None
 
+
 default = CaseDefault()
+
 
 class Channel(object):
 
