@@ -29,8 +29,8 @@ class PollServer(object):
         self.poll = Pollster()
 
         self.pr, self.pw = os.pipe()
-        fexec.set_non_block(self.pr)
-        fexec.set_non_block(self.pw)
+        fexec.setnonblock(self.pr)
+        fexec.setnonblock(self.pw)
         self.poll.addfd(self.pr, 'r')
 
         self.pending = {}

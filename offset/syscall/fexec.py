@@ -15,6 +15,6 @@ def close_on_exec(fd):
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)
 
 
-def set_non_block(fd):
+def setnonblock(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFL) | os.O_NONBLOCK
     fcntl.fcntl(fd, fcntl.F_SETFL, flags)
