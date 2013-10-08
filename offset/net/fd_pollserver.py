@@ -3,10 +3,13 @@
 # This file is part of offset. See the NOTICE for more information.
 
 from .. import os
+from ..core.kernel import DEFAULT_MAX_THREADS
 from ..syscall import select
 from ..syscall import fexec
-from ..sync import Mutex
+from ..sync import Mutex, Once
+from ..time import nano
 
+from .util import Deadline
 
 if hasattr(select, "kqueue"):
     from .fd_bsd import Pollster
@@ -95,8 +98,136 @@ class PollServer(object):
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
 
+    def lookupfd(self, fd, mode):
+        key = fd << 1
+        if mode == 'w':
+           key += 1
+
+        try:
+            netfd = self.pending.pop(key)
+        except KeyError:
+            return None
+
+        return netfd
+
+    def wakefd(self, pd, mode):
+        if mode == 'r':
+            while pd.ncr > 0:
+                pd.ncr -= 1
+                pd.cr.send(True)
+        else:
+            for pd.ncw > 0:
+                pd.ncw -= 1
+                pd.cw.send(True)
+
+    def check_deadline(self):
+        now = nano()
+
+        next_deadline = 0
+        pending self.pending.copy()
+        for key, pd in pending.items():
+            if key & 1 == 0:
+                mode = 'r'
+            else:
+                mode = 'w'
+
+            if mode == 'r':
+                t = p.rdeadline.value()
+            else:
+                t = p.wdeadline.value()
+
+            if t > 0:
+                if t <= now:
+                    del self.pending[key]
+                    self.poll.delfd(pd.sysfd, mode)
+                    self.wakefd(pd, mode)
+                elif next_deadline == 0 or t < next_deadline:
+                    next_deadline = t
+
+        self.deadline = next_deadline
+
+    def run(self):
+        with self.m:
+            while True:
+                if self.deadline > 0:
+                    timeout = self.deadline - nano()
+                    if timeout <= 0:
+                        self.check_deadline()
+                        continue
+
+                fd, mode = self.poll.waitfd(self, timeout)
+                if fd < 0:
+                    self.check_deadline()
+                    continue
+
+                if fd == self.pr.fileno():
+                    os.read(self.pr, 1)
+                    self.check_deadline()
+
+                else:
+                    pd = self.lookupfd(fd, mode)
+                    if not pd:
+                        continue
+                    self.wakefd(pd, mode)
 
 
+pollservers = {}
+startserveronce = Once()
+
+@startserveronce.do
+def sysinit():
+    global pollservers
+
+    for i in range(DEFAULT_MAX_THREADS):
+        pollservers[i] = PollServer()
 
 
+class PollDesc(object):
 
+    def __init__(self, fd):
+
+        # init pollservers
+        sysinit()
+
+        polln = len(pollservers)
+        k = fd % polln
+        self.sysfd = fd
+        self.pollserver = pollservers[k]
+
+        self.cr = makechan(1)
+        self.cw = makechan(1)
+        self.ncr = 0
+        self.ncw = 0
+        self.rdeadline = Deadline()
+        self.wdeadline = Deadline()
+
+    def close(self):
+        pass
+
+    def lock(self):
+        self.pollserver.lock()
+
+    def unlock(self):
+        self.pollserver.unlock()
+
+    def wakeup(self):
+        self.pollserver.wakeup()
+
+    def prepare_read(self):
+        if self.rdeadline.expired():
+            raise Timeout
+
+    def prepare_write(self):
+        if self.wdeadline.expired():
+            raise Timeout
+
+    def wait_read(self):
+        self.pollserver.addfd(self, 'r')
+        return self.cr.recv()
+
+    def wait_write(self):
+        self.pollserver.addfd(self, 'w')
+        return self.cw.recv()
+
+    def evict(self):
+          return self.pollserver.evict(self)
