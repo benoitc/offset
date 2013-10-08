@@ -93,7 +93,7 @@ class PollServer(object):
         self.pw.write(b'.')
 
         try:
-            os.write(self.PIPE[1], b'.')
+            os.write(self.pw, b'.')
         except IOError as e:
             if e.errno not in [errno.EAGAIN, errno.EINTR]:
                 raise
