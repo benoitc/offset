@@ -13,7 +13,7 @@ class Poller(object):
 
     def __init__(self):
         self.poll = select.epoll()
-        syscall.close_on_exec(self.poll.fileno())
+        syscall.closeonexec(self.poll.fileno())
         self.fds = []
         self.events = []
 

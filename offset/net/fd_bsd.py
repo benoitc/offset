@@ -13,7 +13,7 @@ class Pollster(object):
 
     def __init__(self):
         self.kq = select.kqueue()
-        syscall.close_on_exec(self.kq.fileno())
+        syscall.closeonexec(self.kq.fileno())
         self.events = []
 
     def addfd(self, fd, mode, repeat=True):

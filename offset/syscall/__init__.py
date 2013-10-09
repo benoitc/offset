@@ -5,7 +5,7 @@
 
 import sys
 
-from .fexec import ForkLock, close_on_exec, setnonblock
+from .fexec import ForkLock, closeonexec, setnonblock
 from . import proxy
 
 # patch the os module

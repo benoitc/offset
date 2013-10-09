@@ -9,7 +9,7 @@ from ..sync import RWMutex
 
 ForkLock = RWMutex()
 
-def close_on_exec(fd):
+def closeonexec(fd):
     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
     flags |= fcntl.FD_CLOEXEC
     fcntl.fcntl(fd, fcntl.F_SETFD, flags)

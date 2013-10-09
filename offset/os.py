@@ -22,7 +22,7 @@ class File(object):
 def pipe():
     syscall.ForckLock.rlock()
     p = syscall.pipe()
-    syscall.close_on_exec(p[0])
-    syscall.close_on_exec(p[1])
+    syscall.closeonexec(p[0])
+    syscall.closeonexec(p[1])
     syscall.ForckLock.runlock()
     return p
