@@ -25,7 +25,7 @@ def maxListenerBacklog():
             return socket.SOMAXCONN
 
         if n > 1<<16-1:
-		    n = 1<<16 - 1
+            n = 1<<16 - 1
 
         return n
     elif sysctlbyname is not None:
@@ -40,7 +40,7 @@ def maxListenerBacklog():
             return socket.SOMAXCONN
 
         if n > 1<<16-1:
-		    n = 1<<16 - 1
+            n = 1<<16-1
 
         return n
     else:

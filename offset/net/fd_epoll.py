@@ -5,7 +5,7 @@
 import errno
 
 from .util import fd_
-import syscall
+from .. import syscall
 from ..syscall import select
 
 
@@ -13,12 +13,12 @@ if not hasattr(select, "epoll"):
     raise RuntimeError("epoll is not supported")
 
 
-class Poller(object):
+class Pollster(object):
 
     def __init__(self):
         self.poll = select.epoll()
         syscall.closeonexec(self.poll.fileno())
-        self.fds = []
+        self.fds = {}
         self.events = []
 
     def addfd(self, fd, mode, repeat=True):
