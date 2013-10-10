@@ -7,7 +7,7 @@ try:
     from ..syscall.sysctl import sysctlbyname
     from ctypes import c_int
 except ImportError:
-    sysctl = None
+    sysctlbyname = None
 
 from .fd import NetFd
 from . import util
@@ -28,7 +28,7 @@ def maxListenerBacklog():
 		    n = 1<<16 - 1
 
         return n
-    elif sysctl is not None:
+    elif sysctlbyname is not None:
         n = 0
         if (sys.platform.startswith('darwin') or
                 sys.platform.startswith('freebsd')):
