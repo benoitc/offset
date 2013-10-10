@@ -70,6 +70,6 @@ def bind_socket(net, addr):
     sock.listen(maxListenerBacklog())
 
     # return the NetFd instance
-    netfd = NetFd(sock.fileno(), family, sotype, net)
+    netfd = NetFd(sock, family, sotype, net)
     netfd.setaddr(sock.getsockname())
     return netfd

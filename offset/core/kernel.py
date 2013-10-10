@@ -25,16 +25,6 @@ except NotImplementedError:
 
 class Kernel(object):
 
-    SIGQUEUE = []
-
-    SIGNALS = [getattr(signal, "SIG%s" % x) \
-            for x in "QUIT INT TERM".split()]
-
-    SIGNAMES = dict(
-        (getattr(signal, name), name[3:].lower()) for name in dir(signal)
-        if name[:3] == "SIG" and name[3] != "_"
-    )
-
     def __init__(self):
         self.runq = deque()
         self.sleeping = {}
@@ -55,21 +45,11 @@ class Kernel(object):
         # app
         self.sig_queue = SigQueue(self)
 
-        # init signals
-        self.init_signals()
-
-    def init_signals(self):
-        [self.signal_enable(s, self.signal_recv) for s in self.SIGNALS]
-
     def signal_enable(self, sig, handler):
         self.sig_queue.signal_enable(sig, handler)
 
     def signal_disable(self, sig, handler):
         self.sig_queue.signal_disable(sig, handler)
-
-    def signal_recv(self, sig):
-        if len(self.SIGQUEUE) < 5:
-            self.SIGQUEUE.append(sig)
 
     def newproc(self, func, *args, **kwargs):
         # wrap the function so we know when it ends
@@ -111,14 +91,6 @@ class Kernel(object):
         gcurrent = proc.current()
 
         while True:
-            sig = self.SIGQUEUE.pop(0) if len(self.SIGQUEUE) else None
-            if sig is not None and sig in self.SIGNAMES:
-                signame = self.SIGNAMES.get(sig)
-
-                # handle quit signal
-                if signame in ("quit", "int", "term",):
-                    os._exit(os.EX_IOERR)
-
             if self.runq:
                 if self.runq[0] == gcurrent:
                     self.runq.rotate(-1)

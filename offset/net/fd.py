@@ -19,14 +19,16 @@ from .exc import FdClosing
 
 class NetFd(object):
 
-    def __init__(self, fd, familly, sotype, net):
-        self.sysfd = fd
+    def __init__(self, sock, familly, sotype, net):
+        self.sysfd = sock.fileno()
         self.familly = familly
         self.sotype = sotype
         self.net = net
 
         # socket object
-        self.sock = socket.fromfd(fd, familly, sotype)
+        self.sock = sock
+        #_os.close(fd)
+
         self.pd = PollDesc(self)
 
         self.closing = False
@@ -258,11 +260,10 @@ def accept(sock):
     conn, addr = sock.accept()
     syscall.ForkLock.rlock()
     try:
-        fd = _os.dup(conn.fileno())
-        syscall.closeonexec(fd)
+        syscall.closeonexec(conn.fileno())
 
     finally:
         syscall.ForkLock.runlock()
 
-    syscall.setnonblock(fd)
-    return fd, addr
+    conn.setblocking(0)
+    return conn, addr
