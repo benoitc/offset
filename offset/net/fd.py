@@ -224,10 +224,12 @@ class NetFd(object):
                         fd, addr = accept(self.sock)
                     except socket.error as e:
                         if e.args[0] == errno.EAGAIN:
+                            self.pd.wait_read()
                             continue
-                        if e.args[0] == errno.ECONNABORTED:
+                        elif e.args[0] == errno.ECONNABORTED:
                             continue
-                        raise
+                        else:
+                            raise
 
                     break
 
@@ -254,7 +256,13 @@ class NetFd(object):
 
 def accept(sock):
     conn, addr = sock.accept()
-    fno = conn.fileno()
-    syscall.closeonexec(fno)
-    conn.setblocking(0)
-    return fno, addr
+    syscall.ForkLock.rlock()
+    try:
+        fd = _os.dup(conn.fileno())
+        syscall.closeonexec(fd)
+
+    finally:
+        syscall.ForkLock.runlock()
+
+    syscall.setnonblock(fd)
+    return fd, addr

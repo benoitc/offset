@@ -160,13 +160,9 @@ class SocketProxy(wrapt.ObjectProxy):
     def socket(self, *args, **kwargs):
         return socket(*args, **kwargs)
 
-    def fromfd(self, fd, family, type, proto=0):
-        if hasattr(self.__wrapped__, 'dup'):
-            nfd = self.__wrapped__.dup(fd)
-        else:
-            nfd = __os_mod__.dup(fd)
 
-        return socket(family, type, proto, nfd)
+    def fromfd(self, fd, family, type, proto=0):
+        return socket(family, type, fileno=fd)
 
     if hasattr(socket, "share"):
         def fromshare(self, info):

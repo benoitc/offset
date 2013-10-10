@@ -156,7 +156,7 @@ class PollServer(object):
         self.lock()
         try:
             while True:
-                timeout = 0
+                timeout = 0.1
                 if self.deadline > 0:
                     timeout = self.deadline - nano()
                     if timeout <= 0:

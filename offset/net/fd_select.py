@@ -34,7 +34,7 @@ class Pollster(object):
         write_fds = [fd for fd in self.write_fds]
 
         while len(self.events) == 0:
-            pollserver.lock()
+            pollserver.unlock()
             try:
                 r, w, e = select.select(read_fds, write_fds, [], nsec)
             except select.error as e:
@@ -42,7 +42,7 @@ class Pollster(object):
                     continue
                 raise
             finally:
-                pollserver.unlock()
+                pollserver.lock()
 
             events = []
             for fd in r:

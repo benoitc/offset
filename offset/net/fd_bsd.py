@@ -49,7 +49,7 @@ class Pollster(object):
 
     def waitfd(self, pollserver, nsec=0):
         while len(self.events) == 0:
-            pollserver.lock()
+            pollserver.unlock()
             try:
                 events = self.kq.control(None, 0, nsec)
             except select.error as e:
@@ -57,7 +57,7 @@ class Pollster(object):
                     continue
                 raise
             finally:
-                pollserver.unlock()
+                pollserver.lock()
 
             self.events.extend(events)
 

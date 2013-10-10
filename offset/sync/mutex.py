@@ -29,7 +29,7 @@ class Mutex(Locker):
     def lock(self):
         """ locks the coroutine """
 
-        if lib.long_bool_compare_and_swap(self.state, 0, 1):
+        if lib.long_bool_compare_and_swap(self.state, 0, MUTEX_LOCKED):
             return
 
         awoke = False
