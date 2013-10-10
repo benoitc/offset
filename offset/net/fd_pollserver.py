@@ -5,7 +5,7 @@
 import errno
 
 from .. import os
-from ..core.channel import makechan
+from ..core.chan import makechan
 from ..core.kernel import DEFAULT_MAX_THREADS
 from ..syscall import select
 from ..syscall import fexec
