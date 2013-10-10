@@ -56,7 +56,10 @@ class socket(object):
             proto=0, fileno=None):
 
         if fileno is not None:
-            self._sock = _socket.fromfd(fileno, family, type, proto)
+            if hasattr(_socket.socket, 'detach'):
+                self._sock = _socket.socket(family, type, proto, fileno)
+            else:
+                self._sock = _socket.fromfd(fileno, family, type, proto)
         else:
             self._sock = _socket.socket(family, type, proto)
 
