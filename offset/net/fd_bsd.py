@@ -35,7 +35,7 @@ class Pollster(object):
             flags |= select.KQ_EV_ONESHOT
 
         ev = select.kevent(fd_(fd), kmode, flags)
-        select.control([ev], 0)
+        self.kq.control([ev], 0)
 
     def delfd(self, fd, mode):
         if mode == 'r':
@@ -45,7 +45,7 @@ class Pollster(object):
 
         ev = select.kevent(fd_(fd), select.KQ_FILTER_READ,
                 select.KQ_EV_DELETE)
-        select.control([ev], 0)
+        self.kq.control([ev], 0)
 
     def waitfd(self, pollserver, nsec=0):
         while len(self.events) == 0:
