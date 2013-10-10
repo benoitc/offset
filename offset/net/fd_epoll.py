@@ -2,12 +2,16 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-from .util import fd
+import errno
+
+from .util import fd_
+import syscall
 from ..syscall import select
 
 
 if not hasattr(select, "epoll"):
     raise RuntimeError("epoll is not supported")
+
 
 class Poller(object):
 
@@ -87,10 +91,10 @@ class Poller(object):
             finally:
                 pollserver.unlock()
 
-            self.events.extend(event)
+            self.events.extend(events)
 
         (fd, ev) = self.events.pop(0)
-        fd = to_fd(fd)
+        fd = fd_(fd)
 
         if ev == select.EPOLLIN:
             mode = 'r'

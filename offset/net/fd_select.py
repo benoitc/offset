@@ -2,6 +2,7 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+import errno
 
 from .util import fd_
 from ..syscall import select

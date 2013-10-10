@@ -2,13 +2,17 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+import errno
+
 from .. import os
+from ..core.channel import makechan
 from ..core.kernel import DEFAULT_MAX_THREADS
 from ..syscall import select
 from ..syscall import fexec
 from ..sync import Mutex, Once
 from ..time import nano
 
+from .exc import Timeout
 from .util import Deadline
 
 if hasattr(select, "kqueue"):
@@ -60,7 +64,7 @@ class PollServer(object):
 
         self.pending[key] = pd
         do_wakeup = False
-        if t > 0 and (self.deadline == 0 or s.deadline < t):
+        if t > 0 and (self.deadline == 0 or self.deadline < t):
             self.deadline = t
             do_wakeup = True
 
@@ -116,7 +120,7 @@ class PollServer(object):
                 pd.ncr -= 1
                 pd.cr.send(True)
         else:
-            for pd.ncw > 0:
+            while pd.ncw > 0:
                 pd.ncw -= 1
                 pd.cw.send(True)
 
@@ -124,7 +128,7 @@ class PollServer(object):
         now = nano()
 
         next_deadline = 0
-        pending self.pending.copy()
+        pending = self.pending.copy()
         for key, pd in pending.items():
             if key & 1 == 0:
                 mode = 'r'
@@ -132,9 +136,9 @@ class PollServer(object):
                 mode = 'w'
 
             if mode == 'r':
-                t = p.rdeadline.value()
+                t = pd.rdeadline.value()
             else:
-                t = p.wdeadline.value()
+                t = pd.wdeadline.value()
 
             if t > 0:
                 if t <= now:
@@ -190,8 +194,8 @@ class PollDesc(object):
         sysinit()
 
         polln = len(pollservers)
-        k = fd % polln
-        self.sysfd = fd
+        k = fd.sysfd % polln
+        self.sysfd = fd.sysfd
         self.pollserver = pollservers[k]
 
         self.cr = makechan(1)

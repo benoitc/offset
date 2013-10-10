@@ -2,7 +2,11 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+import errno
+import sys
+
 from .util import fd_
+from .. import syscall
 from ..syscall import select
 
 if not hasattr(select, "kqueue"):
@@ -20,7 +24,7 @@ class Pollster(object):
         if mode == 'r':
             kmode = select.KQ_FILTER_READ
         else:
-            kmode = selecy.KQ_FILTER_WRITE
+            kmode = select.KQ_FILTER_WRITE
 
         flags = select.KQ_EV_ADD
 
@@ -30,16 +34,16 @@ class Pollster(object):
         if not repeat:
             flags |= select.KQ_EV_ONESHOT
 
-        ev = select.kevent(_fd(fd), kmode, flags)
+        ev = select.kevent(fd_(fd), kmode, flags)
         select.control([ev], 0)
 
     def delfd(self, fd, mode):
         if mode == 'r':
-            kmode = syscall.KQ_FILTER_READ
+            kmode = select.KQ_FILTER_READ
         else:
-            kmode = syscall.KQ_FILTER_WRITE
+            kmode = select.KQ_FILTER_WRITE
 
-        ev = select.kevent(_fd(fd), select.KQ_FILTER_READ,
+        ev = select.kevent(fd_(fd), select.KQ_FILTER_READ,
                 select.KQ_EV_DELETE)
         select.control([ev], 0)
 

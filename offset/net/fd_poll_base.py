@@ -2,7 +2,10 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-from .util import fd
+import errno
+
+from .util import fd_
+import syscall
 from ..syscall import select
 
 class PollerBase(object):
@@ -81,7 +84,7 @@ class PollerBase(object):
             finally:
                 pollserver.unlock()
 
-            self.events.extend(event)
+            self.events.extend(events)
 
         (fd, ev) = self.events.pop(0)
         fd = fd_(fd)
@@ -106,6 +109,7 @@ class PollerBase(object):
         if not modes:
             self.poll.unregister(fd)
         else:
+            mask = 0
             if modes != self.fds[fd]:
                 mask |= m
                 self.poll.modify(fd, mask)
@@ -118,5 +122,3 @@ class PollerBase(object):
 
         self.fds = []
         self.poll = None
-
-
