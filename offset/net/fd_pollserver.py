@@ -153,7 +153,8 @@ class PollServer(object):
         self.deadline = next_deadline
 
     def run(self):
-        with self.m:
+        self.lock()
+        try:
             while True:
                 timeout = 0
                 if self.deadline > 0:
@@ -176,13 +177,15 @@ class PollServer(object):
                     if not pd:
                         continue
                     self.wakefd(pd, mode)
+        finally:
+            self.unlock()
 
 
 pollservers = {}
 startserveronce = Once()
 
 @startserveronce.do
-def sysinit():
+def startservers():
     global pollservers
 
     for i in range(DEFAULT_MAX_THREADS):
@@ -194,7 +197,7 @@ class PollDesc(object):
     def __init__(self, fd):
 
         # init pollservers
-        sysinit()
+        startservers()
 
         polln = len(pollservers)
         k = fd.sysfd % polln

@@ -199,16 +199,16 @@ class SocketProxy(wrapt.ObjectProxy):
 class _Poll(object):
 
     def register(self, *args):
-        return self.poll.register(*args)
+        return self.p.register(*args)
 
     def modify(self, *args):
-        return self.poll.modify(*args)
+        return self.p.modify(*args)
 
     def unregister(self, *args):
-        return self.poll.unregister(*args)
+        return self.p.unregister(*args)
 
-    def poll(self, *args):
-        return kernel.enter_syscall(self.poll.poll, *args)
+    def poll(self, *args, **kwargs):
+        return kernel.enter_syscall(self.p.poll, *args)
 
 
 if hasattr(__select_mod__, "devpoll"):
@@ -216,32 +216,30 @@ if hasattr(__select_mod__, "devpoll"):
     class devpoll(_Poll):
 
         def __init__(self):
-            self.poll = __select_mod__.devpoll()
+            self.p = __select_mod__.devpoll()
 
 if hasattr(__select_mod__, "epoll"):
 
     class epoll(_Poll):
 
         def __init__(self):
-            self.poll = __select_mod__.epoll()
+            self.p = __select_mod__.epoll()
 
         def close(self):
-            return self.poll.close()
+            return self.p.close()
 
         def fileno(self):
-            return self.poll.fileno()
+            return self.p.fileno()
 
         def fromfd(self, fd):
-            return self.poll.fromfd(fd)
+            return self.p.fromfd(fd)
 
 if hasattr(__select_mod__, "poll"):
 
     class poll(_Poll):
 
         def __init__(self):
-            self.poll = __select_mod__.poll()
-
-    __all__.extend(['poll'])
+            self.p = __select_mod__.poll()
 
 if hasattr(__select_mod__, "kqueue"):
 

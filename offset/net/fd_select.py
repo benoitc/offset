@@ -8,7 +8,7 @@ from .util import fd_
 from ..syscall import select
 
 
-class Poller(object):
+class Pollster(object):
 
     def __init__(self):
         self.read_fds = {}
@@ -29,7 +29,7 @@ class Poller(object):
         elif fd in self.write_fds:
             del self.write_fds[fd]
 
-    def wait(self, pollserver, nsec):
+    def waitfd(self, pollserver, nsec):
         read_fds = [fd for fd in self.read_fds]
         write_fds = [fd for fd in self.write_fds]
 

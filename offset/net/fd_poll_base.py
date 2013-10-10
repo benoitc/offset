@@ -5,7 +5,7 @@
 import errno
 
 from .util import fd_
-import syscall
+from .. import syscall
 from ..syscall import select
 
 class PollerBase(object):
@@ -14,7 +14,7 @@ class PollerBase(object):
 
     def __init__(self):
         self.poll = self.POLL_IMPL()
-        self.fds = []
+        self.fds = {}
         self.events = []
 
     def addfd(self, fd, mode, repeat=True):

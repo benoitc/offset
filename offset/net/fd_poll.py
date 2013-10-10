@@ -8,12 +8,12 @@ from ..syscall import select
 if hasattr(select, "devpoll"):
     # solaris
 
-    class Poller(PollerBase):
+    class Pollster(PollerBase):
         POLL_IMPL = select.devpoll
 
 elif hasattr(select, "poll"):
     # other posix system supporting poll
-    class Poller(PollerBase):
+    class Pollster(PollerBase):
         POLL_IMPL = select.poll
 else:
     raise RuntimeError("poll is not supported")
