@@ -2,10 +2,9 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
-import socket
-
 from ..sync import Mutex
 from ..sync.atomic import AtomicLong
+from ..syscall import socket
 from ..time import nano
 
 def fd_(fd):

@@ -47,7 +47,7 @@ def maxListenerBacklog():
         return socket.SOMAXCONN
 
 # return a bounded socket
-def socket(net, addr):
+def bind_socket(net, addr):
     if net == "tcp" or net == "udp":
         if util.is_ipv6(addr[0]):
             family = socket.AF_INET6

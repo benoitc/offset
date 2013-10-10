@@ -3,6 +3,7 @@
 # This file is part of offset. See the NOTICE for more information.#
 
 from . import syscall
+from .syscall import os
 
 
 class File(object):
@@ -20,9 +21,9 @@ class File(object):
 
 
 def pipe():
-    syscall.ForckLock.rlock()
-    p = syscall.pipe()
+    syscall.ForkLock.rlock()
+    p = os.pipe()
     syscall.closeonexec(p[0])
     syscall.closeonexec(p[1])
-    syscall.ForckLock.runlock()
+    syscall.ForkLock.runlock()
     return p
