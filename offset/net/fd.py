@@ -28,6 +28,7 @@ class NetFd(object):
         self.sock = socket.fromfd(fd, familly, sotype)
         self.pd = PollDesc(self)
 
+        self.closing = False
         self.isConnected = False
         self.rio = Mutex()
         self.wio = Mutex()
