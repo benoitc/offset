@@ -6,7 +6,7 @@ import errno
 
 from .. import os
 from ..core.chan import makechan
-from ..core.kernel import DEFAULT_MAX_THREADS
+from ..core.kernel import DEFAULT_MAX_THREADS, go
 from ..syscall import select
 from ..syscall import fexec
 from ..sync import Mutex, Once
@@ -39,6 +39,8 @@ class PollServer(object):
 
         self.pending = {}
         self.deadline = 0
+
+        go(self.run)
 
     def lock(self):
         self.m.lock()
@@ -74,7 +76,7 @@ class PollServer(object):
         if do_wakeup:
             self.wakeup()
 
-    def evictfd(self, pd):
+    def evict(self, pd):
         pd.closing = True
 
         try:
@@ -153,6 +155,7 @@ class PollServer(object):
     def run(self):
         with self.m:
             while True:
+                timeout = 0
                 if self.deadline > 0:
                     timeout = self.deadline - nano()
                     if timeout <= 0:
@@ -234,4 +237,4 @@ class PollDesc(object):
         return self.cw.recv()
 
     def evict(self):
-          return self.pollserver.evict(self)
+        return self.pollserver.evict(self)

@@ -11,6 +11,7 @@ from .. import os
 from .. import syscall
 from ..syscall import socket
 from ..sync import Mutex
+from ..time import sleep
 
 from .fd_pollserver import PollDesc
 from .exc import FdClosing
@@ -42,27 +43,26 @@ class NetFd(object):
 
     def setaddr(self, addr):
         self.addr = addr
-        self.sysfile = self.sock.makefile('rwb')
 
     def connect(self, address):
-        self.wio.lock()
-        self.pd.prepare_write()
-        while True:
-            try:
-                self._sock.connect(address)
-            except socket.error as e:
-                if e.args[0] == errno.EISCONN:
-                    break
-                if e.args[0] not in (errno.EINPROGRESS, errno.EALREADY,
-                        errno.EINTR,):
-                    raise
+        with self.wio:
+            self.pd.prepare_write()
+            while True:
+                try:
+                    self._sock.connect(address)
+                except socket.error as e:
+                    if e.args[0] == errno.EISCONN:
+                        break
+                    if e.args[0] not in (errno.EINPROGRESS, errno.EALREADY,
+                            errno.EINTR,):
+                        raise
 
-                self.pd.wait_write()
-                continue
+                    self.pd.wait_write()
+                    continue
 
-            break
+                break
 
-        self.isConnected = True
+            self.isConnected = True
 
     def incref(self, closing=False):
         with self.sysmu:
@@ -87,13 +87,11 @@ class NetFd(object):
         self.pd.lock()
         try:
             self.incref(True)
-            do_wakeup = self.pd.evict()
+            self.pd.evict()
         finally:
             self.pd.unlock()
 
         self.decref()
-        if do_wakeup:
-            self.pd.wakeup()
 
     def shutdown(self, how):
         self.incref()
@@ -223,7 +221,7 @@ class NetFd(object):
                 self.pd.prepare_read()
                 while True:
                     try:
-                        conn, addr = accept(self.sock)
+                        fd, addr = accept(self.sock)
                     except socket.error as e:
                         if e.args[0] == errno.EAGAIN:
                             continue
@@ -234,7 +232,7 @@ class NetFd(object):
                     break
 
                 cls = self.__class__
-                obj = cls(conn.fileno(), self.familly, self.sotype,
+                obj = cls(fd, self.familly, self.sotype,
                         self.net)
                 obj.setaddr(addr)
                 return obj
@@ -256,6 +254,7 @@ class NetFd(object):
 
 def accept(sock):
     conn, addr = sock.accept()
-    syscall.closeonexec(conn.fileno())
+    fno = conn.fileno()
+    syscall.closeonexec(fno)
     conn.setblocking(0)
-    return conn, addr
+    return fno, addr

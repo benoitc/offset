@@ -51,7 +51,8 @@ class Mutex(Locker):
                 self.sema.acquire()
                 awoke = True
 
-    __enter__ = lock
+    def __enter__(self):
+        return self.lock()
 
     def unlock(self):
         new = lib.long_add_and_fetch(self.state, -MUTEX_LOCKED)

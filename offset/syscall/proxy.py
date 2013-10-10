@@ -45,6 +45,8 @@ class socket(object):
     """A subclass of _socket.socket wrapping the makefile() method and
     patching blocking calls. """
 
+    __slots__ = ('_io_refs', '_sock', '_closed', )
+
     _BL_SYSCALLS = ('accept', 'getpeername', 'getsockname',
             'getsockopt', 'ioctl', 'recv', 'recvfrom', 'recvmsg',
             'recvmsg_into', 'recvfrom_into', 'recv_into', 'send',
@@ -57,7 +59,6 @@ class socket(object):
             self._sock = _socket.fromfd(fileno, family, type, proto)
         else:
             self._sock = _socket.socket(family, type, proto)
-
 
         self._io_refs = 0
         self._closed = False
@@ -126,22 +127,29 @@ class socket(object):
         if self._closed:
             self._sock.close()
 
-    def _real_close(self):
-        self._sock.close(self)
-
     def close(self):
-        # This function should not reference any globals. See issue #808164.
         self._closed = True
         if self._io_refs <= 0:
-            self._real_close()
+            """
+            # socket shutdown
+            try:
+                self._sock.shutdown(_socket.SHUT_RDWR)
+            except:
+                pass
+            """
+
+            self._sock.close()
 
     def detach(self):
         self._closed = True
         if hasattr(self._sock, 'detach'):
             return self._sock.detach()
 
+        new_fd = os.dup(self._sock.fileno())
+        self._sock.close()
+
         # python 2.7 has no detach method, fake it
-        return self._sock.fileno()
+        return new_fd
 
 
 class SocketProxy(wrapt.ObjectProxy):

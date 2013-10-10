@@ -63,9 +63,9 @@ def bind_socket(net, addr):
         # net == "unix" or net == "tcp"
         sotype = socket.SOCK_STREAM
 
-
     # bind and listen the socket
     sock = socket.socket(family, sotype)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(addr)
     sock.listen(maxListenerBacklog())
 
