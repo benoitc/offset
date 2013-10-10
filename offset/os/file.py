@@ -2,8 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.#
 
-from . import syscall
-from .syscall import os
+from .. import syscall
+from ..syscall import os
 
 
 class File(object):
