@@ -88,15 +88,8 @@ class Kernel(object):
             elif len(self.sleeping) > 0:
                 # we dont't have any proc running but a future may come back.
                 # just wait for the first one.
-                while True:
-                    try:
-                        next(futures.as_completed(self.sleeping, timeout=0.2))
-                        break
-                    except futures.TimeoutError:
-                        break
-                    except KeyboardInterrupt:
-                        os._exit(os.EX_IOERR)
-
+                futures.wait([fs for fs in self.sleeping], timeout=.2,
+                        return_when=futures.FIRST_COMPLETED)
                 continue
             elif self._run_calls:
                 gnext = self._run_calls.pop()
