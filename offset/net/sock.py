@@ -71,5 +71,5 @@ def bind_socket(net, addr):
 
     # return the NetFd instance
     netfd = NetFd(sock.fileno(), family, sotype, net)
-    netfd.setaddr(sock.getpeername())
+    netfd.setaddr(sock.getsockname())
     return netfd
