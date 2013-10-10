@@ -41,11 +41,9 @@ if hasattr(_socket, "SocketIO"):
 else:
     from _socketio import SocketIO
 
-class socket(_socket.socket):
+class socket(object):
     """A subclass of _socket.socket wrapping the makefile() method and
     patching blocking calls. """
-
-    __slots__ = ["_io_refs", "_closed"]
 
     _BL_SYSCALLS = ('accept', 'getpeername', 'getsockname',
             'getsockopt', 'ioctl', 'recv', 'recvfrom', 'recvmsg',
@@ -54,7 +52,13 @@ class socket(_socket.socket):
 
     def __init__(self, family=_socket.AF_INET, type=_socket.SOCK_STREAM,
             proto=0, fileno=None):
-        _socket.socket.__init__(self, family, type, proto, fileno)
+
+        if fileno is not None:
+            self._sock = _socket.fromfd(fileno, family, type, proto)
+        else:
+            self._sock = _socket.socket(family, type, proto)
+
+
         self._io_refs = 0
         self._closed = False
 
@@ -68,8 +72,9 @@ class socket(_socket.socket):
     def __getattr__(self, name):
         # wrap syscalls
         if name in self._BL_SYSCALLS:
-            return kernel.syscall(getattr(_socket.socket, name))
-        return getattr(_socket.socket, name)
+            return kernel.syscall(getattr(self._sock, name))
+
+        return getattr(self._sock, name)
 
 
     def makefile(self, mode="r", buffering=None, encoding=None,
@@ -119,11 +124,10 @@ class socket(_socket.socket):
         if self._io_refs > 0:
             self._io_refs -= 1
         if self._closed:
-            self.close()
+            self._sock.close()
 
-    def _real_close(self, _ss=_socket.socket):
-        # This function should not reference any globals. See issue #808164.
-        _ss.close(self)
+    def _real_close(self):
+        self._sock.close(self)
 
     def close(self):
         # This function should not reference any globals. See issue #808164.
@@ -133,11 +137,11 @@ class socket(_socket.socket):
 
     def detach(self):
         self._closed = True
-        if hasattr(_socket.socket, 'detach'):
-            return super().detach()
+        if hasattr(self._sock, 'detach'):
+            return self._sock.detach()
 
         # python 2.7 has no detach method, fake it
-        return self.fileno()
+        return self._sock.fileno()
 
 
 class SocketProxy(wrapt.ObjectProxy):

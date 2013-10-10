@@ -13,9 +13,10 @@ def fd_(fd):
     return fd
 
 
-class Deadline(Mutex):
+class Deadline(object):
 
     def __init__(self):
+        self.m = Mutex()
         self.val = 0
 
     def expired(self):
@@ -23,18 +24,17 @@ class Deadline(Mutex):
         return t > 0 and nano() >= t
 
     def value(self):
-        self.lock()
-        v = self.val
-        self.unlock()
+        with self.m:
+            v = self.val
+
         return v
 
     def set(self, v):
-        self.lock()
-        self.val = v
-        self.unlock()
+        with self.m:
+            self.val = v
 
     def settime(self, t=None):
-        self.val = t or nano()
+        self.set(t or nano())
 
 
 def is_ipv6(addr):

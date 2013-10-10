@@ -239,7 +239,7 @@ class NetFd(object):
                 obj.setaddr(addr)
                 return obj
             finally:
-                self.decrf()
+                self.decref()
 
     def dup(self):
         syscall.ForkLock.rlock()
@@ -255,7 +255,7 @@ class NetFd(object):
 
 
 def accept(sock):
-    sock, addr = sock.accept()
-    syscall.closeonexec(sock.fileno())
-    sock.setnonblocking(0)
-    return sock, addr
+    conn, addr = sock.accept()
+    syscall.closeonexec(conn.fileno())
+    conn.setnonblocking(0)
+    return conn, addr
