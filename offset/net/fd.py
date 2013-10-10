@@ -257,5 +257,5 @@ class NetFd(object):
 def accept(sock):
     conn, addr = sock.accept()
     syscall.closeonexec(conn.fileno())
-    conn.setnonblocking(0)
+    conn.setblocking(0)
     return conn, addr
