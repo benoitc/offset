@@ -58,6 +58,11 @@ class NetFd(object):
                     raise
 
                 self.pd.wait_write()
+                continue
+
+            break
+
+        self.isConnected = True
 
     def incref(self, closing=False):
         with self.sysmu:
