@@ -51,7 +51,7 @@ class NetFd(object):
             self.pd.prepare_write()
             while True:
                 try:
-                    self._sock.connect(address)
+                    self.sock.connect(address)
                 except socket.error as e:
                     if e.args[0] == errno.EISCONN:
                         break
