@@ -16,5 +16,8 @@ def from_nanotime(n):
     """ convert from nanotime to seconds """
     return n / 1.0e9
 
+
+# TODO: implement this function with libc nanosleep function when
+# available.
 def nanosleep(n):
     time.sleep(from_nanotime(n))
