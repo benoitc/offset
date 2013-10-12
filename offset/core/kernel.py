@@ -9,6 +9,7 @@ import multiprocessing
 import os
 import signal
 import sys
+import time
 
 from .exc import KernelError
 from . import proc
@@ -21,7 +22,6 @@ try:
     DEFAULT_MAX_THREADS = multiprocessing.cpu_count()
 except NotImplementedError:
     DEFAULT_MAX_THREADS = 2
-
 
 class Kernel(object):
 
@@ -76,7 +76,6 @@ class Kernel(object):
             self.runq.remove(g)
         except ValueError:
             pass
-
         self.schedule()
 
     def ready(self, g):
@@ -91,6 +90,7 @@ class Kernel(object):
         gcurrent = proc.current()
 
         while True:
+            time.sleep(0.05)
             if self.runq:
                 if self.runq[0] == gcurrent:
                     self.runq.rotate(-1)
@@ -100,7 +100,7 @@ class Kernel(object):
             elif len(self.sleeping) > 0:
                 # we dont't have any proc running but a future may come back.
                 # just wait for the first one.
-                futures.wait([fs for fs in self.sleeping], timeout=.2,
+                futures.wait([fs for fs in self.sleeping], timeout=.05,
                         return_when=futures.FIRST_COMPLETED)
                 continue
             elif self._run_calls:
@@ -131,6 +131,7 @@ class Kernel(object):
         f = self.tpool.submit(fn, *args, **kwargs)
         self.sleeping[f] = gt
         f.add_done_callback(self.exit_syscall)
+
 
         # schedule, switch to another coroutine
         self.park()
