@@ -152,11 +152,12 @@ class Context(object):
 
         # init the futures
         f = self.tpool.submit(fn, *args, **kwargs)
-        f.add_done_callback(self.exit_syscall)
 
         # add the goroutine to sleeping functions
         with self.lock:
             self.sleeping[f] = gt
+
+        f.add_done_callback(self.exit_syscall)
 
         # schedule, switch to another coroutine
         self.park()

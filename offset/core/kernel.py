@@ -58,7 +58,7 @@ class Kernel(object):
                 print("sleep")
                 time.sleep(0.05)
 
-        return self.enter_syscall(callback)
+        return self.ctx.enter_syscall(callback)
 
 
 kernel = Kernel()

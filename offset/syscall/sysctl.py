@@ -9,13 +9,13 @@ def sysctl(mib_t, c_type=None):
     for i, v in enumerate(mib_t):
         mib[i] = c_int(v)
     if c_type == None:
-        sz = c_size_t(0)
+        size = c_size_t(0)
         libc.sysctl(mib, len(mib), None, byref(sz), None, 0)
-        buf = create_string_buffer(sz.value)
+        buf = create_string_buffer(size.value)
     else:
-        buf = c_type(0)
-        sz = c_size_t(sizeof(buf))
-    st = libc.sysctl(mib, len(mib), byref(buf), byref(sz), None, 0)
+        buf = c_type()
+        size = c_size_t(sizeof(buf))
+    size = libc.sysctl(mib, len(mib), byref(buf), byref(size), None, 0)
     if st != 0:
         raise OSError('sysctl() returned with error %d' % st)
     try:
@@ -25,13 +25,13 @@ def sysctl(mib_t, c_type=None):
 
 def sysctlbyname(name, c_type=None):
     if c_type == None:
-        sz = c_size_t(0)
+        size = c_size_t(0)
         libc.sysctlbyname(name, None, byref(sz), None, 0)
-        buf = create_string_buffer(sz.value)
+        buf = create_string_buffer(size.value)
     else:
-        buf = c_type(0)
-        sz = c_size_t(sizeof(buf))
-    st = libc.sysctlbyname(name, byref(buf), byref(sz), None, 0)
+        buf = c_type()
+        size = c_size_t(sizeof(buf))
+    st = libc.sysctlbyname(name, byref(buf), byref(size), None, 0)
     if st != 0:
         raise OSError('sysctlbyname() returned with error %d' % st)
     try:

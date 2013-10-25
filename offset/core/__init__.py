@@ -2,6 +2,8 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+import functools
+
 from .context import Context, enter_syscall
 from .kernel import run
 from .chan import Channel, makechan, select, default
