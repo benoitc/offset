@@ -1,7 +1,10 @@
+# -*- coding: utf-8 -
+#
+# This file is part of offset. See the NOTICE for more information.
+
 from offset import run, maintask
 from offset.time import Ticker, SECOND
 
-from offset.core.kernel import kernel
 
 @maintask
 def main():

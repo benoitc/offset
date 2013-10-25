@@ -8,21 +8,21 @@ import threading
 
 from ..util import six
 
-from .kernel import kernel
+from .context import Context, park, enter_syscall
 from . import proc
 from .util import nanotime, nanosleep
 
 
 def _ready(now, t, g):
-    kernel.ready(g)
+    g.ready()
 
 
 def sleep(d):
-    curr = proc.current()
-    curr.sleeping = True
-    t = Timer(_ready, interval=d, args=(curr,))
+    g = proc.current()
+    g.sleeping = True
+    t = Timer(_ready, interval=d, args=(g,))
     t.start()
-    kernel.park()
+    g.park()
 
 
 class Timer(object):
@@ -79,10 +79,10 @@ class Timers(object):
 
             if self.sleeping:
                 self.sleeping = False
-                kernel.ready(self._timerproc)
+                self._timerproc.ready()
 
             if self._timerproc is None or not self._timerproc.is_alive:
-                self._timerproc = kernel.newproc(self.timerproc)
+                self._timerproc = Context.instance().newproc(self.timerproc)
 
     def _add_timer(self, t):
         if not t.interval:
@@ -126,11 +126,11 @@ class Timers(object):
             if delta < 0:
                 self.sleeping = True
                 self._lock.release()
-                kernel.park()
+                park()
             else:
                 self._lock.release()
                 # one time is pending sleep until
-                kernel.enter_syscall(nanosleep, delta)
+                enter_syscall(nanosleep, delta)
 
 
 timers = Timers()

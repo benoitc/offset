@@ -2,70 +2,59 @@
 #
 # This file is part of offset. See the NOTICE for more information.
 
+
 from collections import deque
+import copy
 import signal
 import threading
 import weakref
 
 
+NUMSIG=65
+
 class SigQueue(object):
 
     def __init__(self, kernel):
         self.kernel = kernel
-        self.waiters = {}
         self.queue = deque()
+        self.receivers = []
         self.lock = threading.Lock()
 
-    def signal_enable(self, sig, handler):
-        with self.lock:
-            if sig not in self.waiters:
-                self.waiters[sig] = set()
-                signal.signal(sig, self.signal_recv)
+        self.sigtable = {}
+        for i in range(NUMSIG):
+            self.sigtable[i] = 0
 
-            ref = weakref.ref(handler)
-            self.waiters[sig].add(handler)
-
-    def signal_disable(self, sig, handler):
+    def signal_enable(self, sig):
+        print("enable %s" % sig)
         with self.lock:
-            if sig not in self.waiters:
+            if not self.sigtable[sig]:
+                print("register")
+                signal.signal(sig, self.signal_handler)
+
+            self.sigtable[sig] += 1
+
+
+    def signal_disable(self, sig):
+        print("disable")
+        with self.lock:
+            if self.sigtable[sig] == 0:
                 return
 
-            try:
-                self.waiters[sig].remove(handler)
-            except KeyError:
-                pass
+            self.sigtable[sig] -= 1
 
-    def signal_recv(self, sig, frame):
-        self.queue.append(sig)
+            if self.sigtable[sig] == 0:
+                signal.signal(sig, signal.SIG_DFL)
 
-        # process signals
-        ssig = self.queue.popleft()
-
-        # send the signal to waiters
-        self.kernel.enter_syscall(self.signal_send, ssig)
-
-    def signal_send(self, ssig):
+    def signal_recv(self, s):
         with self.lock:
-            if not ssig in self.waiters:
-                return
+            print("append")
+            self.receivers.append(s)
 
-            # get waiters
-            waiters = self.waiters[ssig]
-            if len(waiters) == 0:
-                return
+    def signal_handler(self, sig, frame):
+        print("got %s" % s)
+        with self.lock:
+            receivers = copy.copy(self.receivers)
+            self.receivers = []
 
-        for waiter in waiters:
-            # the waiter has been garbage collected, remove it from the
-            # set.
-            if waiter is None:
-                with self._lock:
-                    try:
-                        self.waiters[ssig].remove(waiter)
-                    except KeyError:
-                        pass
-                continue
-
-            try:
-                waiter(ssig)
-            except:
-                pass
+        for recv in receivers:
+            recv.value = sig

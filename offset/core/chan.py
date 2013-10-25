@@ -5,7 +5,7 @@
 from collections import deque
 import random
 
-from .kernel import kernel
+from .context import Context
 from .exc import ChannelError
 from ..util import six
 from . import proc
@@ -136,7 +136,7 @@ class Channel(object):
 
             gp = sg.g
             gp.param = None
-            kernel.ready(gp)
+            gp.ready()
 
         # release all senders
         while True:
@@ -147,7 +147,7 @@ class Channel(object):
 
             gp = sg.g
             gp.param = None
-            kernel.ready(gp)
+            gp.ready()
 
     def open(self):
         self.closed = False
@@ -163,7 +163,7 @@ class Channel(object):
             while len(self._buf) >= self.size:
                 mysg = SudoG(g, None)
                 self.sendq.append(mysg)
-                kernel.park()
+                g.park()
 
             # fill the buffer
             self._buf.append(val)
@@ -177,7 +177,7 @@ class Channel(object):
 
             if sg is not None:
                 gp = sg.g
-                kernel.ready(gp)
+                gp.ready()
 
         else:
             sg = None
@@ -194,7 +194,7 @@ class Channel(object):
                 gp.param = sg
 
                 # activate the receive process
-                kernel.ready(gp)
+                gp.ready()
                 return
 
             # noone is receiving, add the process to sendq and remove us from
@@ -202,7 +202,7 @@ class Channel(object):
             mysg = SudoG(g, val)
             g.param = None
             self.sendq.append(mysg)
-            kernel.park()
+            g.park()
 
             if g.param is None:
                 if not self.closed:
@@ -216,7 +216,7 @@ class Channel(object):
             while len(self._buf) <= 0:
                 mysg = SudoG(g, None)
                 self.recvq.append(mysg)
-                kernel.park()
+                g.park()
 
             val = self._buf.popleft()
 
@@ -229,12 +229,12 @@ class Channel(object):
             if sg is not None:
                 # yes someone is sending, unblock it and return the result
                 gp = sg.g
-                kernel.ready(gp)
+                gp.ready()
 
                 if sg.elem is not None:
                     self._buf.append(sg.elem)
 
-            kernel.schedule()
+            Context.instance().schedule()
 
             if isinstance(val, bomb):
                 val.raise_()
@@ -250,7 +250,7 @@ class Channel(object):
         if sg is not None:
             gp = sg.g
             gp.param = sg
-            kernel.ready(gp)
+            gp.ready()
 
             if isinstance(sg.elem, bomb):
                 sg.elem.raise_()
@@ -262,7 +262,7 @@ class Channel(object):
         mysg = SudoG(g, None)
         g.param = None
         self.recvq.append(mysg)
-        kernel.park()
+        g.park()
 
         if g.param is None:
             if not self.closed:
@@ -317,7 +317,7 @@ def select(*cases):
 
                     if sg is not None:
                         gp = sg.g
-                        kernel.ready(gp)
+                        gp.ready()
 
                     # return the case
                     return cas
@@ -332,7 +332,7 @@ def select(*cases):
                     if sg is not None:
                         gp = sg.g
                         gp.param = sg
-                        kernel.ready(gp)
+                        gp.ready()
                         cas.elem = sg.elem
                         return cas
 
@@ -357,7 +357,7 @@ def select(*cases):
 
                     if sg is not None:
                         gp = sg.g
-                        kernel.ready(gp)
+                        gp.ready()
 
                     # return
                     return cas
@@ -372,7 +372,7 @@ def select(*cases):
                         gp = sg.g
                         sg.elem = cas.elem
                         gp.param = sg
-                        kernel.ready(gp)
+                        gp.ready()
                         return cas
             else:
                 # default case
@@ -391,7 +391,7 @@ def select(*cases):
                 cas.ch.sendq.append(sg)
 
         # sleep until a communication happen
-        kernel.park()
+        g.park()
 
         sg = g.param
 

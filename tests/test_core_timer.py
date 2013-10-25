@@ -5,7 +5,7 @@
 import time
 
 from offset import run, go, maintask
-from offset.core.kernel import kernel
+from offset.core.context import park
 from offset.core import proc
 from offset.core.util import nanotime
 from offset.core.timer import Timer, sleep
@@ -23,7 +23,7 @@ def test_simple_timer():
 
     def _func(now, t, rlist, g):
         rlist.append(now)
-        kernel.ready(g)
+        g.ready()
 
     @maintask
     def main():
@@ -32,7 +32,7 @@ def test_simple_timer():
         t = Timer(_func, period, args=(rlist, proc.current()))
         now = nanotime()
         t.start()
-        kernel.park()
+        park()
         delay = rlist[0]
 
         assert (now + period - DELTA0) <= delay <= (now + period + DELTA), delay
@@ -44,7 +44,7 @@ def test_multiple_timer():
     r1 = []
     def f1(now, t, g):
         r1.append(now)
-        kernel.ready(g)
+        g.ready()
 
     r2 = []
     def f2(now, t):
@@ -61,7 +61,7 @@ def test_multiple_timer():
         t1.start()
         t2.start()
 
-        kernel.park()
+        park()
 
         assert r1[0] > r2[0]
 
@@ -76,7 +76,7 @@ def test_repeat():
     def f(now, t, g):
         if len(r) == 3:
             t.stop()
-            kernel.ready(g)
+            g.ready()
         else:
             r.append(now)
 
@@ -85,7 +85,7 @@ def test_repeat():
     def main():
         t = Timer(f, 0.01 * SECOND, 0.01 * SECOND, args=(proc.current(),))
         t.start()
-        kernel.park()
+        park()
 
         assert len(r) == 3
         assert r[2] > r[1]

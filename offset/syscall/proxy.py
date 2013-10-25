@@ -10,8 +10,7 @@ _socket = __import__("socket")
 
 import io
 import wrapt
-from ..core import kernel
-
+from ..core import syscall, enter_syscall
 
 __all__ = ['OsProxy', 'SelectProxy']
 
@@ -32,7 +31,7 @@ class OsProxy(wrapt.ObjectProxy):
     def __getattr__(self, name):
         # wrap syscalls
         if name in self._OS_SYSCALLS:
-            return kernel.syscall(getattr(self.__wrapped__, name))
+            return syscall(getattr(self.__wrapped__, name))
         return getattr(self.__wrapped__, name)
 
 
@@ -76,7 +75,7 @@ class socket(object):
     def __getattr__(self, name):
         # wrap syscalls
         if name in self._BL_SYSCALLS:
-            return kernel.syscall(getattr(self._sock, name))
+            return syscall(getattr(self._sock, name))
 
         return getattr(self._sock, name)
 
@@ -207,7 +206,7 @@ class _Poll(object):
         return self.p.unregister(*args)
 
     def poll(self, *args, **kwargs):
-        return kernel.enter_syscall(self.p.poll, *args)
+        return enter_syscall(self.p.poll, *args)
 
 
 if hasattr(__select_mod__, "devpoll"):
@@ -257,7 +256,7 @@ if hasattr(__select_mod__, "kqueue"):
             return self.kq.close()
 
         def control(self, *args, **kwargs):
-            return kernel.enter_syscall(self.kq.control, *args, **kwargs)
+            return enter_syscall(self.kq.control, *args, **kwargs)
 
 
 
@@ -283,4 +282,4 @@ class SelectProxy(wrapt.ObjectProxy):
             return kqueue()
 
     def select(self, *args, **kwargs):
-        return kernel.syscall(self.__wrapped__.select)(*args, **kwargs)
+        return enter_syscall(self.__wrapped__.select, *args, **kwargs)

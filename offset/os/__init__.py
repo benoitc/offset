@@ -19,3 +19,4 @@ for name in dir(_signal):
         __all__.append(name)
 
 del _signal
+

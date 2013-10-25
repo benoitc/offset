@@ -3,6 +3,7 @@
 # This file is part of offset. See the NOTICE for more information.
 
 import threading
+import time
 
 try:
     import fibers
@@ -15,19 +16,12 @@ _tls = threading.local()
 class ProcExit(Exception):
     """ exception raised when the proc is asked to exit """
 
-def _proc_getcurrent():
+def current():
     try:
         return _tls.current_proc
     except AttributeError:
-        return _proc_getmain()
-
-
-def _proc_getmain():
-    try:
-        return _tls.main_proc
-    except AttributeError:
-        _tls.main_proc = MainProc()
-        return _tls.main_proc
+        _create_main_proc()
+        return _tls.current_proc
 
 
 class Proc(object):
@@ -40,6 +34,7 @@ class Proc(object):
             try:
                 return func(*args, **kwargs)
             except ProcExit:
+                print("got proc exit")
                 pass
             finally:
                 m.removeg()
@@ -52,31 +47,41 @@ class Proc(object):
         self._is_started = 0
 
     def switch(self):
-        current = _proc_getcurrent()
+        curr = current()
         try:
             self.fiber.switch()
         finally:
-            _tls.current_proc = current
+            _tls.current_proc = curr
 
     def throw(self, *args):
-        current = _proc_getcurrent()
+        curr = current()
         try:
             self.fiber.throw(*args)
         finally:
-            _tls.current_proc = current
+            _tls.current_proc = curr
+
+    def park(self):
+        self.m.park(self)
+
+    def ready(self):
+        self.m.ready(self)
 
     def is_alive(self):
         return self._is_started < 0 or self.fiber.is_alive()
 
+    def terminate(self):
+        self.throw(ProcExit, ProcExit("exit"))
+        time.sleep(0.1)
+
     def __eq__(self, other):
         return self.fiber == other.fiber
 
-class MainProc(Proc):
 
-    def __init__(self):
-        self._is_started = -1
-        self.param = None
-        self.fiber = fibers.current()
-        self.sleeping = True
+def _create_main_proc():
+    main_proc = Proc.__new__(Proc)
+    main_proc.fiber = fibers.current()
+    main_proc._is_started = True
+    main_proc.sleeping = True
 
-current = _proc_getcurrent
+    _tls.main_proc = main_proc
+    _tls.current_proc = main_proc

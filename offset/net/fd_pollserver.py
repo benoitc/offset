@@ -5,8 +5,8 @@
 import errno
 
 from .. import os
-from ..core.chan import makechan
-from ..core.kernel import DEFAULT_MAX_THREADS, go
+from ..core import go, makechan
+from ..core.util import getmaxthreads
 from ..syscall import select
 from ..syscall import fexec
 from ..sync import Mutex, Once
@@ -14,6 +14,7 @@ from ..time import nano
 
 from .exc import Timeout
 from .util import Deadline
+
 
 if hasattr(select, "kqueue"):
     from .fd_bsd import Pollster
@@ -188,7 +189,7 @@ startserveronce = Once()
 def startservers():
     global pollservers
 
-    for i in range(DEFAULT_MAX_THREADS):
+    for i in range(getmaxthreads()):
         pollservers[i] = PollServer()
 
 

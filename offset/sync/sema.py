@@ -5,7 +5,7 @@
 from collections import deque
 
 from .atomic import AtomicLong
-from ..core.kernel import kernel
+from ..core.context import park
 from ..core import proc
 
 
@@ -56,7 +56,7 @@ class Semaphore(object):
                 self.waiters.remove(proc.current())
                 return
 
-            kernel.park()
+            park()
 
     __enter__ = acquire
 
@@ -72,7 +72,7 @@ class Semaphore(object):
             return
 
         self.nwait -= 1
-        kernel.ready(waiter)
+        waiter.ready()
 
     def __exit__(self, t, v, tb):
         return self.release()
