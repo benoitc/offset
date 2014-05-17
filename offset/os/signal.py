@@ -65,17 +65,14 @@ class Handlers(object):
 
     def loop(self):
         while True:
-            print("loop")
             self.process(signal(self.signal_recv))
 
     def process(self, sig):
-        print("la")
         with self.m:
             for c, h in self.handlers.items():
                 if h.want(sig):
                     ret = select(c.if_send(sig))
                     if ret:
-                        print(ret)
                         continue
 
             self.signal_recv.value = 0

@@ -47,15 +47,12 @@ class Kernel(object):
         self.sig_queue.signal_disable(sig)
 
     def signal_recv(self, s):
-        print("receive")
         self.sig_queue.signal_recv(s)
 
         def callback():
             while True:
                 if s.value != 0:
-                    print("got s")
                     return s.value
-                print("sleep")
                 time.sleep(0.05)
 
         return self.ctx.enter_syscall(callback)

@@ -34,7 +34,6 @@ class Proc(object):
             try:
                 return func(*args, **kwargs)
             except ProcExit:
-                print("got proc exit")
                 pass
             finally:
                 m.removeg()

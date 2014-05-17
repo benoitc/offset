@@ -25,17 +25,14 @@ class SigQueue(object):
             self.sigtable[i] = 0
 
     def signal_enable(self, sig):
-        print("enable %s" % sig)
         with self.lock:
             if not self.sigtable[sig]:
-                print("register")
                 signal.signal(sig, self.signal_handler)
 
             self.sigtable[sig] += 1
 
 
     def signal_disable(self, sig):
-        print("disable")
         with self.lock:
             if self.sigtable[sig] == 0:
                 return
@@ -47,11 +44,9 @@ class SigQueue(object):
 
     def signal_recv(self, s):
         with self.lock:
-            print("append")
             self.receivers.append(s)
 
     def signal_handler(self, sig, frame):
-        print("got %s" % s)
         with self.lock:
             receivers = copy.copy(self.receivers)
             self.receivers = []

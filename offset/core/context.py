@@ -139,7 +139,6 @@ class Context(object):
         self.tpool.shutdown(wait=False)
 
     def wait_syscalls(self, timeout):
-        print("wait")
         with self.lock:
             fs = [f for f in self.sleeping]
 
