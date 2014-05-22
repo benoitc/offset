@@ -1,4 +1,4 @@
-# example inspired from http://tour.golang.org/#64
+# example inspired from http://tour.golang.org/#66
 
 from offset import makechan, go, maintask, run
 
