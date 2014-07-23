@@ -6,6 +6,7 @@
 __os_mod__ = __import__("os")
 __select_mod__ = __import__("select")
 __socket_mod__ = __import__("socket")
+__selectors_mod__ = __import__("selectors")
 _socket = __import__("socket")
 
 import io
@@ -209,6 +210,7 @@ class _Poll(object):
         return enter_syscall(self.p.poll, *args)
 
 
+
 if hasattr(__select_mod__, "devpoll"):
 
     class devpoll(_Poll):
@@ -283,3 +285,116 @@ class SelectProxy(wrapt.ObjectProxy):
 
     def select(self, *args, **kwargs):
         return enter_syscall(self.__wrapped__.select, *args, **kwargs)
+
+
+
+# proxy selecrors
+
+class BaseSelector(object):
+
+    def register(self, *args, **kwargs):
+        return self.s.register(*args, **kwargs)
+
+    def unregister(self, *args):
+        return self.s.unregister(*args)
+
+    def modify(self, *args, **kwargs):
+        return self.s.modify(self, *args, **kwargs)
+
+    def select(self, timeout=None):
+        return enter_syscall(self.s.register, timeout)
+
+    def close(self):
+        self.s.close()
+
+    def get_key(self, fileobj):
+        return self.s.get_key(fileobj)
+
+    def get_map(self):
+        return self.s.get_map()
+
+
+if hasattr(__selectors_mod__, 'SelectSelector'):
+
+    class SelectSelector(BaseSelector):
+
+        def __init__(self):
+            self.s = __selectors_mod__.SelectSelector()
+
+
+if hasattr(__selectors_mod__, 'PollSelector'):
+
+    class PollSelector(BaseSelector):
+
+        def __init__(self):
+            self.s = __selectors_mod__.PollSelector()
+
+
+if hasattr(__selectors_mod__, 'EpollSelector'):
+
+    class EpollSelector(BaseSelector):
+
+        def __init__(self):
+            self.s = __selectors_mod__.EpollSelector()
+
+        def fileno(self):
+            return self.s.fileno()
+
+
+if hasattr(__selectors_mod__, 'KqueueSelector'):
+
+    class KqueueSelector(BaseSelector):
+
+        def __init__(self):
+            self.s = __selectors_mod__.KqueueSelector()
+
+        def fileno(self):
+            return self.s.fileno()
+
+
+if 'KqueueSelector' in globals():
+    DefaultSelector = KqueueSelector
+elif 'EpollSelector' in globals():
+    DefaultSelector = EpollSelector
+elif 'PollSelector' in globals():
+    DefaultSelector = PollSelector
+else:
+    DefaultSelector = SelectSelector
+
+
+class SelectorsProxy(wrapt.ObjectProxy):
+
+    def __init__(self):
+        super(SelectorsProxy, self).__init__(__selectors_mod__)
+
+    if hasattr(__selectors_mod__, 'SelectSelector'):
+
+        def SelectSelector(self):
+            return SelectSelector()
+
+
+    if hasattr(__selectors_mod__, 'PollSelector'):
+
+        def PollSelector(self):
+            return PollSelector()
+
+
+    if hasattr(__selectors_mod__, 'EpollSelector'):
+
+        def EpollSelector(self):
+            return EpollSelector()
+
+
+    if hasattr(__selectors_mod__, 'KqueueSelector'):
+
+        def KqueueSelector(self):
+            return KqueueSelector()
+
+    if 'KqueueSelector' in globals():
+        DefaultSelector = KqueueSelector
+    elif 'EpollSelector' in globals():
+        DefaultSelector = EpollSelector
+    elif 'PollSelector' in globals():
+        DefaultSelector = PollSelector
+    else:
+        DefaultSelector = SelectSelector

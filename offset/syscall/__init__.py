@@ -21,5 +21,10 @@ sys.modules['offset.syscall.select'] = select
 socket = proxy.SocketProxy()
 sys.modules['offset.syscall.socket'] = socket
 
+# patch the selectors module
+selectors = proxy.SelectorsProxy()
+sys.modules['offset.syscall.selectors'] = selectors
+
+
 def signal(s):
     return signal_recv(s)
