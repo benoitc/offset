@@ -1,4 +1,4 @@
-# inspired from http://tour.golang.org/#63
+# inspired from http://tour.golang.org/#65
 
 
 from offset import go, maintask, run
